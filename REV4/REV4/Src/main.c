@@ -1,66 +1,15 @@
-/**
-  ******************************************************************************
-  * File Name          : main.c
-  * Description        : Main program body
-  ******************************************************************************
-  ** This notice applies to any and all portions of this file
-  * that are not between comment pairs USER CODE BEGIN and
-  * USER CODE END. Other portions of this file, whether 
-  * inserted by the user or by software development tools
-  * are owned by their respective copyright owners.
-  *
-  * COPYRIGHT(c) 2018 STMicroelectronics
-  *
-  * Redistribution and use in source and binary forms, with or without modification,
-  * are permitted provided that the following conditions are met:
-  *   1. Redistributions of source code must retain the above copyright notice,
-  *      this list of conditions and the following disclaimer.
-  *   2. Redistributions in binary form must reproduce the above copyright notice,
-  *      this list of conditions and the following disclaimer in the documentation
-  *      and/or other materials provided with the distribution.
-  *   3. Neither the name of STMicroelectronics nor the names of its contributors
-  *      may be used to endorse or promote products derived from this software
-  *      without specific prior written permission.
-  *
-  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-  *
-  ******************************************************************************
-  */
-
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f3xx_hal.h"
 
-/* USER CODE BEGIN Includes */
-
-/* USER CODE END Includes */
-
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c2;
-
 SPI_HandleTypeDef hspi2;
 SPI_HandleTypeDef hspi3;
-
 TIM_HandleTypeDef htim1;
-
 UART_HandleTypeDef huart4;
 UART_HandleTypeDef huart5;
-
 PCD_HandleTypeDef hpcd_USB_FS;
-
-/* USER CODE BEGIN PV */
-/* Private variables ---------------------------------------------------------*/
-
-/* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
@@ -72,77 +21,115 @@ static void MX_SPI2_Init(void);
 static void MX_SPI3_Init(void);
 static void MX_UART4_Init(void);
 static void MX_UART5_Init(void);
-
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
-                                
+   
+   
+/* Structs for data from sensors */
+struct baro_data{
+	uint8_t p; //pressure bits
+	uint8_t pt; //pressure and temperature bits
+	uint8_t t; //temperature bits
+};
 
-/* USER CODE BEGIN PFP */
-/* Private function prototypes -----------------------------------------------*/
+//struct for holding the accelerometer and gyroscope data from the MPU
+struct mpu_data{
+	uint16_t accelx; //acceleromter x-axis
+	uint16_t accely; //acceleromter y-axis
+	uint16_t accelz; //acceleromter z-axis
+	uint16_t gyrox; //gyroscope x-axis
+	uint16_t gyroy; //gyroscope y-axis
+	uint16_t gyroz; //gyroscope z-axis
+};
 
-/* USER CODE END PFP */
+//struct for holding the gps data latitude, longitude, altitude
+struct gps_data{
+	float lat; //latitude
+	float lon; //longitude
+	float alt; //GPS altitude
+};
 
-/* USER CODE BEGIN 0 */
+//struct holding a float after raw data is processed
+struct data_float{
+float data;
+};
 
-/* USER CODE END 0 */
+//A struct for holding a set of data from all the sensors.
+struct packet{
+	struct data_float alt;
+	struct data_float vel;
+	struct data_float lat;
+	struct data_float lon;
+	uint16_t time;
 
+};
+//struct for holding the lighlty processed returns from sensors
+struct raw{
+	uint16_t id;
+	struct baro_data baro;
+	struct mpu_data mpu;
+	struct gps_data gps;
+	uint16_t time;
+	char delim;
+};
+
+void get_data(){
+	struct raw raw_sets[8]; //raw sets we are building
+	struct packet cur_packet; //packet we are building
+	int i=0;//iterator
+	int addr; //holds EEPROM address
+	uint8_t mask = 0x00; //clear the mask used for checking completed sections of data
+	uint8_t temp = 0x00; //mask check
+	uint16_t id = 0; //ide for logging to eeprom
+	addr = 0; //set starting address to 0
+	i=0;
+	while(i<8){
+		while(mask < 0x0F){ //this value may change, it is assuming 4 pieces of data
+			temp = mask;
+			temp = temp | 0x01; //clear first 7 bits to test for barometer data retrieval completion
+			if(temp > 0x00){//need to get baro data
+				(raw_sets[i]).baro = read_baro(&mask); //get baro data
+			}
+		}
+		(raw_sets[i]).id = id; //set id of raw data before writing to eeprom
+		id++; //increase id value by one
+		(raw_sets[i]).delim = '|';
+		i++;
+	}
+	i=0;
+}
+         
+/* Main */                       
 int main(void)
 {
 
-  /* USER CODE BEGIN 1 */
-
-  /* USER CODE END 1 */
-
-  /* MCU Configuration----------------------------------------------------------*/
-
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  /* Inits here */
   HAL_Init();
-
-  /* USER CODE BEGIN Init */
-
-  /* USER CODE END Init */
-
-  /* Configure the system clock */
   SystemClock_Config();
-
-  /* USER CODE BEGIN SysInit */
-
-  /* USER CODE END SysInit */
-
-  /* Initialize all configured peripherals */
   MX_GPIO_Init();
-//  MX_USB_PCD_Init();
- // MX_TIM1_Init();
- // MX_I2C2_Init();
-//  MX_SPI2_Init();
- // MX_SPI3_Init();
-//  MX_UART4_Init();
-//  MX_UART5_Init();
+/*  MX_USB_PCD_Init();
+	MX_TIM1_Init();
+	MX_I2C2_Init();
+	MX_SPI2_Init();
+	MX_SPI3_Init();
+	MX_UART4_Init();
+	MX_UART5_Init();
+*/
 
-  /* USER CODE BEGIN 2 */
-  //Commmented lines indicated singular, compile-able code snippets attempting to light LEDs
-	 GPIOC->ODR = 0x0000FFFF; //; failed attempt Real_LED_hours3_Schindlers_List.dfu
-//  	  GPIOC->PUPDR = 0b01010101010101010101010101010101U; //pullhigh enable; failed attempt Real_LED_hours4_Schindlers_Pissed.dfu
-
-
-  /* USER CODE END 2 */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-  /* USER CODE END WHILE
-	  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_SET);
-	  		HAL_Delay(500);
-	  		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_SET);
-	  		HAL_Delay(500);
-	  		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_RESET);
-	  		HAL_Delay(500);
-	  		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_RESET);
-	  		HAL_Delay(500);
-  /* USER CODE BEGIN 3 */
-
+	RCC->AHBENR |= RCC_AHBENR_GPIOCEN; // Enable GPIOC clock
+	GPIOC->MODER = GPIOC->MODER & 0xFFFF0000 | 0x00005555; // 0b01: Output
+  	GPIOC->OTYPER = GPIOC->OTYPER & 0xFFFFFF00; // 0b0 : PP (R)
+  	GPIOC->OSPEEDR = GPIOC->OSPEEDR & 0xFFFF0000 | 0x0000FFFF; // 0b11: 50MHz
+  	GPIOC->PUPDR = GPIOC->PUPDR & 0xFFFF0000; // 0b00: no PU/PD (R)
+  	
+  	GPIOC->ODR = GPIOC->ODR & 0xFFFFFF00 | 0x02;
+  	while(1){
+	  continue;
+  	}
   }
-  /* USER CODE END 3 */
-
 }
 
 /** System Clock Configuration
@@ -478,11 +465,6 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE END 4 */
 
-/**
-  * @brief  This function is executed in case of error occurrence.
-  * @param  None
-  * @retval None
-  */
 void _Error_Handler(char * file, int line)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
@@ -490,35 +472,15 @@ void _Error_Handler(char * file, int line)
   while(1) 
   {
   }
-  /* USER CODE END Error_Handler_Debug */ 
+  /* USER CODE END Error_Handler_Debug */
+  printf("Something fucked up in infinite loop: file %s on line %d\r\n", file, line);
 }
 
 #ifdef USE_FULL_ASSERT
 
-/**
-   * @brief Reports the name of the source file and the source line number
-   * where the assert_param error has occurred.
-   * @param file: pointer to the source file name
-   * @param line: assert_param error line source number
-   * @retval None
-   */
 void assert_failed(uint8_t* file, uint32_t line)
 {
-  /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
-    ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-  /* USER CODE END 6 */
-
+    printf("One of the asserts fucked up: file %s on line %d\r\n", file, line);
 }
 
 #endif
-
-/**
-  * @}
-  */ 
-
-/**
-  * @}
-*/ 
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
