@@ -93,11 +93,11 @@ uint8_t spi_read8(uint32_t spi)
 struct baro_data read_baro(uint8_t* mask){
 	struct baro_data temp;
 	//read ADC
-	spi_send8(SPI2, 0x00);
+	spi_send8(SPI3, 0x00);
 	//read and save return
-	temp.p = spi_read8(SPI2);
-	temp.pt = spi_read8(SPI2);
-	temp.t = spi_read8(SPI2);
+	temp.p = spi_read8(SPI3);
+	temp.pt = spi_read8(SPI3);
+	temp.t = spi_read8(SPI3);
 	//if any data is bad clear the whole struct 
 	if(temp.p == 0x00){ 
 		temp.pt = 0x00;
