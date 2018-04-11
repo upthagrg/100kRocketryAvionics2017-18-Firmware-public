@@ -72,6 +72,54 @@ struct raw{
 	char delim;
 };
 
+void spi_send8(uint32_t spi, uint8_t data)
+{
+	while (!(spi->SR & SPI_SR_TXE ))
+	*(__IO uint8_t *)spi = data;
+}
+
+uint8_t spi_read8(uint32_t spi)
+{
+	while (!(spi->SR & SPI_SR_RXNE))
+	return *(__IO uint8_t *)spi;
+//	return 0xFF;
+}
+
+/******************************************
+*Title: Read_baro
+*Description: Reads data from the barometer
+*and returns it as a struct baro_data.
+******************************************/
+struct baro_data read_baro(uint8_t* mask){
+	struct baro_data temp;
+	//read ADC
+	spi_send8(SPI2, 0x00);
+	//read and save return
+	temp.p = spi_read8(SPI2);
+	temp.pt = spi_read8(SPI2);
+	temp.t = spi_read8(SPI2);
+	//if any data is bad clear the whole struct 
+	if(temp.p == 0x00){ 
+		temp.pt = 0x00;
+		temp.t = 0x00;
+		*mask = *mask & 0xFE; //set this control bit low
+	}
+	else if(temp.pt == 0x00){
+		temp.p = 0x00;
+		temp.t = 0x00;
+		*mask = *mask & 0xFE; //set this control bit low
+	}
+	else if(temp.t == 0x00){
+		temp.p = 0x00;
+		temp.pt = 0x00;
+		*mask = *mask & 0xFE; //set this control bit low
+	}
+	else{ //data is good
+		*mask = *mask | 0x01; //set this control bit high
+	}
+	return temp;
+}
+
 void get_data(){
 	struct raw raw_sets[8]; //raw sets we are building
 	struct packet cur_packet; //packet we are building

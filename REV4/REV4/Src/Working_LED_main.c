@@ -22,6 +22,7 @@ static void MX_SPI3_Init(void);
 static void MX_UART4_Init(void);
 static void MX_UART5_Init(void);
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
+
          
 /* Main */                       
 int main(void)
