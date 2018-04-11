@@ -120,6 +120,85 @@ struct baro_data read_baro(uint8_t* mask){
 	return temp;
 }
 
+/****************************************
+*Title: write_to_eeprom
+*Description: writes struct contents to
+*non-volatile EEPROM memory
+****************************************/
+void write_to_eeprom(struct raw* data, int* addr){
+	uint8_t sreg; //status register return
+	uint8_t* tmp; //used for typcasting;
+	int i=0;
+	//set up for write
+	spi_send8(SPI2, 0x06);//write enable
+	//set cs low 
+	GPIO_PIN_15 = 0;
+	spi_send8(SPI2, 0x02);//page program
+	//write address
+	tmp = (uint8_t*)(addr); //typcast
+	spi_send8(SPI2, tmp[2]);//write address high byte
+	spi_send8(SPI2, tmp[1]);//write address mid byte
+	spi_send8(SPI2, tmp[0]);//write address low byte
+	//write data
+	for(i; i<8; i++){//write 8 sets of raw data to eeprom
+		tmp = (uint8_t*)(&((data[i]).id)); //typcast
+		spi_send8(SPI2, (uint8_t)(tmp[0]));
+		spi_send8(SPI2, (uint8_t)(tmp[1]));//write id
+		//spi_send8(SPI3, (uint8_t)(data[i]).baro.p);
+		//spi_send8(SPI3, (uint8_t)(data[i]).baro.pt);
+		//spi_send8(SPI3, (uint8_t)(data[i]).baro.t);//write baro return
+		spi_send8(SPI2, (uint8_t)(tmp[2]));
+		spi_send8(SPI2, (uint8_t)(tmp[3]));
+		spi_send8(SPI2, (uint8_t)(tmp[4])); //write barometer data
+		//tmp = (uint8_t*)(&((data[i]).mpu.accelx)); //typcast
+		spi_send8(SPI2, (uint8_t)(tmp[5]));
+		spi_send8(SPI2, (uint8_t)(tmp[6]));
+		//tmp = (uint8_t*)(&((data[i]).mpu.accely)); //typcast
+		spi_send8(SPI2, (uint8_t)(tmp[7]));
+		spi_send8(SPI2, (uint8_t)(tmp[8]));
+		//tmp = (uint8_t*)(&((data[i]).mpu.accelz)); //typcast
+		spi_send8(SPI2, (uint8_t)(tmp[9]));
+		spi_send8(SPI2, (uint8_t)(tmp[11])); //write MPU acceleromter data
+		//tmp = (uint8_t*)(&((data[i]).mpu.gyrox)); //typcast
+		spi_send8(SPI2, (uint8_t)(tmp[11]));
+		spi_send8(SPI2, (uint8_t)(tmp[12]));
+		//tmp = (uint8_t*)(&((data[i]).mpu.gyroy)); //typcast
+		spi_send8(SPI2, (uint8_t)(tmp[13]));
+		spi_send8(SPI2, (uint8_t)(tmp[14]));
+		//tmp = (uint8_t*)(&((data[i]).mpu.gyroz)); //typcast
+		spi_send8(SPI2, (uint8_t)(tmp[15]));
+		spi_send8(SPI2, (uint8_t)(tmp[16])); //write MPU gyroscope data
+		//tmp = (uint8_t*)(&((data[i]).gps.lat)); //typcast
+		spi_send8(SPI2, (uint8_t)(tmp[17]));
+		spi_send8(SPI2, (uint8_t)(tmp[18]));
+		spi_send8(SPI2, (uint8_t)(tmp[19]));
+		spi_send8(SPI2, (uint8_t)(tmp[20])); //wrte GPS latitude data
+		//tmp = (uint8_t*)(&((data[i]).gps.lon)); //typcast
+		spi_send8(SPI2, (uint8_t)(tmp[21]));
+		spi_send8(SPI2, (uint8_t)(tmp[22]));
+		spi_send8(SPI2, (uint8_t)(tmp[23]));
+		spi_send8(SPI2, (uint8_t)(tmp[24])); //wrte GPS longitude data
+		//tmp = (uint8_t*)(&((data[i]).gps.alt)); //typcast
+		spi_send8(SPI2, (uint8_t)(tmp[25]));
+		spi_send8(SPI2, (uint8_t)(tmp[26]));
+		spi_send8(SPI2, (uint8_t)(tmp[27]));
+		spi_send8(SPI2, (uint8_t)(tmp[28])); //wrte GPS altitude data
+		//tmp = (uint8_t*)(&((data[i]).time)); //typcast
+		spi_send8(SPI2, (uint8_t)(tmp[29])); 
+		spi_send8(SPI2, (uint8_t)(tmp[30])); //write time stamp
+		//spi_send8(SPI3, (uint8_t)(data[i]).delim); //write delim char (|)
+		spi_send8(SPI2, (uint8_t)(tmp[31])); //write delim char (|)
+	}
+	(*addr)+=256; //size of a raw set (32) * 8 sets (also exactly 1 page of EEPROM)
+	//set cs bit high 
+	GPIO_PIN_15 = 1;
+	do{
+		spi_send8(SPI2, 0x05); //read EEPROM SR1
+		sreg = spi_read8(SPI2); //get SR1 
+		sreg = sreg & 0x02; // get only BUSY read only bit
+	}while(sreg > 0); //loop unitl page write is complete
+}
+
 void get_data(){
 	struct raw raw_sets[8]; //raw sets we are building
 	struct packet cur_packet; //packet we are building
@@ -162,6 +241,8 @@ int main(void)
 	MX_UART4_Init();
 	MX_UART5_Init();
 */
+	MX_SPI2_Init();
+	MX_SPI3_Init();
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
