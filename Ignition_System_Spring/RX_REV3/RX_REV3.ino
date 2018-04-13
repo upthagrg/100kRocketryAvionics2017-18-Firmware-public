@@ -26,15 +26,15 @@ void setup() {
 void loop() {
    
   if(HC12.available()){    
-    int input = mySerial.parseInt();  //read serial input and convert to integer (-32,768 to 32,767)    
+    int input = HC12.parseInt();  //read serial input and convert to integer (-32,768 to 32,767)    
     if(input == 2017){                //if on code is received
-      digitalWrite(RELAY1, HIGH);     //Fire Rocket
+      digitalWrite(Relay, HIGH);     //Fire Rocket
       delay(1000);                    //Shorts E-Match for 1 second
-      digitalWrite(RELAY1, LOW);      //Turns relay off
+      digitalWrite(Relay, LOW);      //Turns relay off
       input = 0;                      //Resets input variable   
     }
   }
-  mySerial.flush();                   //clear the serial buffer for unwanted inputs     
+  HC12.flush();                   //clear the serial buffer for unwanted inputs     
   
   delay(20);                          //small delay to improve serial communication
  
