@@ -48,5 +48,6 @@ void loop() {
   if(Serial.available()){                   // If Arduino's computer rx buffer has data
     HC12.write(Serial.read());              // Send that data to serial
   }
+//
 */
 
