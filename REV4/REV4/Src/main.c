@@ -258,7 +258,8 @@ int main(void)
   	
   	GPIOC->ODR = GPIOC->ODR & 0xFFFFFF00 | 0x02;
   	
-    HAL_UART_Transmit(&huart5, 1, 1, 100); //testing UART5 TX
+    char buffer[] = "test\r\n";            //testing buffer
+    HAL_UART_Transmit(&huart5, 1, sizeof(buffer), 100); //testing UART5 TX
     while(1){   
       continue;
     }
