@@ -21,6 +21,8 @@ static void MX_SPI2_Init(void);
 static void MX_SPI3_Init(void);
 static void MX_UART4_Init(void);
 static void MX_UART5_Init(void);
+
+
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
    
    
@@ -248,16 +250,28 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	RCC->AHBENR |= RCC_AHBENR_GPIOCEN; // Enable GPIOC clock
-	GPIOC->MODER = GPIOC->MODER & 0xFFFF0000 | 0x00005555; // 0b01: Output
+	  RCC->AHBENR |= RCC_AHBENR_GPIOCEN; // Enable GPIOC clock
+	  GPIOC->MODER = GPIOC->MODER & 0xFFFF0000 | 0x00005555; // 0b01: Output
   	GPIOC->OTYPER = GPIOC->OTYPER & 0xFFFFFF00; // 0b0 : PP (R)
   	GPIOC->OSPEEDR = GPIOC->OSPEEDR & 0xFFFF0000 | 0x0000FFFF; // 0b11: 50MHz
   	GPIOC->PUPDR = GPIOC->PUPDR & 0xFFFF0000; // 0b00: no PU/PD (R)
   	
   	GPIOC->ODR = GPIOC->ODR & 0xFFFFFF00 | 0x02;
-  	while(1){
-	  continue;
-  	}
+  	
+    HAL_UART_Transmit(&huart5, 1, 1, 100); //testing UART5 TX
+    while(1){   
+      continue;
+    }
+
+    /*
+    for (;;)
+    {
+        uint8_t buffer[4];
+        HAL_UART_Receive(&s_UARTHandle, buffer, sizeof(buffer), HAL_MAX_DELAY);
+        HAL_UART_Transmit(&s_UARTHandle, buffer, sizeof(buffer), HAL_MAX_DELAY);
+    }
+    */
+
   }
 }
 
@@ -508,7 +522,7 @@ static void MX_UART5_Init(void)
 {
 
   huart5.Instance = UART5;
-  huart5.Init.BaudRate = 115200;
+  huart5.Init.BaudRate = 9600;   //lowered to match TXRX stock config for testing
   huart5.Init.WordLength = UART_WORDLENGTH_8B;
   huart5.Init.StopBits = UART_STOPBITS_1;
   huart5.Init.Parity = UART_PARITY_NONE;
