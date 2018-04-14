@@ -199,6 +199,87 @@ void write_to_eeprom(struct raw* data, int* addr){
 	}while(sreg > 0); //loop unitl page write is complete
 }
 
+uint8_t get_mpu_byte(uint8_t reg){
+    uint8_t data = 0;
+//    uint8_t addr = 0x69;
+
+    I2C2->CR2 &= ~(I2C_CR2_RD_WRN);
+    I2C2->CR2 &= ~(0x69 << 16); //address of the MPU
+    I2C2->CR2 |= I2C_CR2_START | (1 << 16); 
+    while(I2C2->CR2 & I2C_CR2_START);
+
+    I2C2->TXDR = reg; // write address of register
+    while (!(I2C2->ISR & I2C_ISR_TXE));
+
+    I2C2->CR2 |= I2C_CR2_RD_WRN;
+    I2C2->CR2 |= I2C_CR2_START | (1 << 16);
+    while(I2C2->CR2 & I2C_CR2_START);
+    while (!(I2C2->ISR & I2C_ISR_RXNE));
+    data = I2C2->RXDR;
+    I2C2->CR2 |= I2C_CR2_STOP;
+    while(I2C2->CR2 & I2C_CR2_STOP);
+    return data;
+}
+
+void get_mpu_data(struct mpudata* out){
+	uint8_t temph, templ;
+	uint8_t* pos;
+	//get accel x high
+	temph = get_mpu_byte(0x3B);
+	//get accel x low
+	templ = get_mpu_byte(0x3C);
+	//put in to struct
+	pos = &(out->accelx)
+	*pos = tmph;
+	pos++;
+	*pos = tmpl;
+	pos++;
+	//get accel y high	
+	temph = get_mpu_byte(0x3D);
+	//get accel y low
+	templ = get_mpu_byte(0x3E);
+	//put in to struct
+	*pos = temph;
+	pos++;
+	*pos = tmpl;
+	pos++;
+	//get accel z high
+	temph = get_mpu_byte(0x3F);
+	//get accel z low
+	templ = get_mpu_byte(0x40);
+	//put in to struct
+	*pos = temph;
+	pos++;
+	*pos = templ;
+	pos++;
+	//get gyro x high
+	temph = get_mpu_byte(0x3F);
+	//get gyro x low
+	templ = get_mpu_byte(0x3F);
+	//put in to struct
+	*pos = temph;
+	pos++;
+	*pos = templ;
+	pos++;
+	//get gyro y high
+	temph = get_mpu_byte(0x3F);
+	//get gyro y low
+	templ = get_mpu_byte(0x3F);
+	//put in to struct
+	*pos = temph;
+	pos++;
+	*pos = templ;
+	pos++;
+	//get gyro z high
+	temph = get_mpu_byte(0x3F);
+	//get gyro z low
+	templ = get_mpu_byte(0x3F);
+	//put in to struct
+	*pos = temph;
+	pos++;
+	*pos = templ;
+}
+
 void get_data(){
 	struct raw raw_sets[8]; //raw sets we are building
 	struct packet cur_packet; //packet we are building
