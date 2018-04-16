@@ -316,6 +316,20 @@ void get_data(){
 	i=0;
 }
 
+void power_led_on(){
+     HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_SET);
+}
+
+void power_led_off(){
+     HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_RESET);
+}
+
+void tx_led_blink(){ //put this in TX loop and send to EEPROM loop
+     HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_SET);
+     HAL_Delay(50);
+     HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_RESET);
+}
+
 /*****************************************
 *Title: get_time
 *Description: Returns time since system
@@ -324,8 +338,7 @@ start of runtime in milliseconds
 
 /*
 unsigned int get_time(){
-	//get the current time and return it
-	return 0;
+	return HAL_GetTick(); //should return time in ticks since HAL_InitTick(), needs to be converted to milliseconds
 }
 
 */
@@ -339,7 +352,9 @@ int main(void)
 
   /* Inits here */
   HAL_Init();
+  //HAL_InitTick(); //not sure if this is necessary alongside HAL_Init(), but this is used for the get_time() function
   SystemClock_Config();
+  power_led_on();
   	MX_GPIO_Init();
 	MX_USB_PCD_Init();
 	MX_TIM1_Init();
@@ -359,7 +374,9 @@ int main(void)
   	GPIOC->OSPEEDR = GPIOC->OSPEEDR & 0xFFFF0000 | 0x0000FFFF; // 0b11: 50MHz
   	GPIOC->PUPDR = GPIOC->PUPDR & 0xFFFF0000; // 0b00: no PU/PD (R)
   	GPIOC->ODR = GPIOC->ODR & 0xFFFFFF00 | 0x02;
+  	
   }
+  power_led_off();
 }
 
 /** System Clock Configuration
