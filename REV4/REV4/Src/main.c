@@ -336,12 +336,9 @@ void tx_led_blink(){ //put this in TX loop and send to EEPROM loop
 start of runtime in milliseconds
 *****************************************/
 
-/*
 unsigned int get_time(){
 	return HAL_GetTick(); //should return time in ticks since HAL_InitTick(), needs to be converted to milliseconds
 }
-
-*/
 
 /****************************************
 *Title: Main
@@ -351,8 +348,7 @@ int main(void)
 {
 
   /* Inits here */
-  HAL_Init();
-  //HAL_InitTick(); //not sure if this is necessary alongside HAL_Init(), but this is used for the get_time() function
+  HAL_Init(); //initializes HAL, also automatically calls HAL_InitTick() for the get_time() function
   SystemClock_Config();
   power_led_on();
   	MX_GPIO_Init();
