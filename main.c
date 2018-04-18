@@ -114,7 +114,7 @@ int main(void)
  // MX_TIM1_Init();
  // MX_I2C2_Init();
 //  MX_SPI2_Init();
- // MX_SPI3_Init();
+  MX_SPI3_Init();
 //  MX_UART4_Init();
   MX_UART5_Init();
 
@@ -127,10 +127,55 @@ int main(void)
   /* USER CODE END 2 */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
+	/* Structs for data from sensors */
+struct baro_data{
+	uint8_t p; //pressure bits
+	uint8_t pt; //pressure and temperature bits
+	uint8_t t; //temperature bits
+};
+	
+  /******************************************
+*Title: Read_baro
+*Description: Reads data from the barometer  //TESTING
+*and returns it as a struct baro_data.
+******************************************/
+struct baro_data read_baro(uint8_t* mask){
+	struct baro_data temp;
+	//read ADC
+	spi_send8(SPI3, 0x00);
+	//read and save return
+	temp.p = spi_read8(SPI3);
+	temp.pt = spi_read8(SPI3);
+	temp.t = spi_read8(SPI3);
+	//if any data is bad clear the whole struct 
+	if(temp.p == 0x00){ 
+		temp.pt = 0x00;
+		temp.t = 0x00;
+		*mask = *mask & 0xFE; //set this control bit low
+	}
+	else if(temp.pt == 0x00){
+		temp.p = 0x00;
+		temp.t = 0x00;
+		*mask = *mask & 0xFE; //set this control bit low
+	}
+	else if(temp.t == 0x00){
+		temp.p = 0x00;
+		temp.pt = 0x00;
+		*mask = *mask & 0xFE; //set this control bit low
+	}
+	else{ //data is good
+		*mask = *mask | 0x01; //set this control bit high
+	}
+	return temp;
+}
+	
+	
+	
   while (1)
   {
-	  char Test[] = "AAAAAAAAAAAAAAAAAA\n";
-	  HAL_UART_Transmit(&huart5, Test, sizeof(Test), HAL_MAX_DELAY); //testing UART5 TX
+	  //char Test[] = "AAAAAAAAAAAAAAAAAA\n";
+	  HAL_UART_Transmit(&huart5, (char*)read_baro(0), sizeof(Test), HAL_MAX_DELAY); //testing UART5 TX
 	     HAL_Delay(1000);
 	     GPIOC->ODR = 0x0000FFFF;
 	     HAL_Delay(1000);
