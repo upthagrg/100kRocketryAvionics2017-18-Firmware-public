@@ -72,6 +72,16 @@ struct raw{
 	char delim;
 };
 
+//global variables
+char uart_msg[128];
+int uart_it=0;
+float cur_lat; //holds current latitude info
+float cur_lon; //holds current longitude info
+float cur_gpsalt; //holds current gps altitude info
+uint8_t mask;
+
+
+
 void spi_send8(uint32_t spi, uint8_t data)
 {
 	while (!(spi->SR & SPI_SR_TXE ))
@@ -278,14 +288,68 @@ void get_mpu_data(struct mpudata* out){
 	*pos = temph;
 	pos++;
 	*pos = templ;
+	mask = mask | 0x04; //set MPU complete bit in mask
+
 }
+
+/**************************************************
+* Title: process_gps
+* Description: Processes the GPS string into just 
+* 3 floats. The GPS message must be fully recieves
+* before this function is called. 
+**************************************************/
+void process_gps(){
+        int i=0;
+        int j=0;
+        char tmp[16]; //temporary string
+        memset(tmp, '\0', 16); //clear temp string
+        for(j; j<2; j++){ //skip 2 sections based off of omma delimiters 
+                while(uart_msg[i] != ','){ //look for comma 
+                        i++;
+                        continue;
+                }
+        }
+        j=0; //reset j
+        i++; //i is now one past the 2nd comma (start of latitude
+        while(uart_msg[i] != ','){ //loop until next comma
+                tmp[j] = uart_msg[i]; //copy over the character
+                i++; //increment i
+        }
+        cur_lat = atof(tmp); //convert
+        i+= 3; //skip over next comma (skip 'N/S')
+        j=0; //reset j
+        memset(tmp, '\0', 16); //clear temp string
+        while(uart_msg[i] != ','){ //loop until next comma
+                tmp[j] = uart_msg[i]; //copy over the character
+                i++; //increment i
+        }
+        cur_lon = atof(tmp); //convert
+        j=0; //reset j
+        memset(tmp, '\0', 16); //clear temp string
+        while(uart_msg[i] != 'M'){ //skip until end of altitude field
+                i++;
+        }
+        i--; //decrement i
+        while(uart_msg[i] != ','){//go back to start of altitude field
+                i--; //decrement i
+        }
+        i++; //increment to get past ','
+        while(uart_msg[i] != ','){ //loop until end of altitude float
+                tmp[j] = uart_msg[i];//copy character
+                i++;
+        }
+        cur_gpsalt = atof(tmp); //convert
+        mask = mask | 0x02; //set GPS complete bit in mask
+}
+
+
 
 void get_data(){
 	struct raw raw_sets[8]; //raw sets we are building
 	struct packet cur_packet; //packet we are building
 	int i=0;//iterator
 	int addr; //holds EEPROM address
-	uint8_t mask = 0x00; //clear the mask used for checking completed sections of data
+	mask = 0x00; //clear the mask used for checking completed sections of data
 	uint8_t temp = 0x00; //mask check
 	uint16_t id = 0; //ide for logging to eeprom
 	addr = 0; //set starting address to 0
@@ -341,6 +405,77 @@ int main(void)
   	}
   }
 }
+
+/**************************************************
+* Title: process_gps
+* Description: Processes the GPS string into just 
+* 3 floats. The GPS message must be fully recieves
+* before this function is called. 
+**************************************************/
+void process_gps(){
+        int i=0;
+        int j=0;
+        char tmp[16]; //temporary string
+        memset(tmp, '\0', 16); //clear temp string
+        for(j; j<2; j++){ //skip 2 sections based off of omma delimiters 
+                while(uart_msg[i] != ','){ //look for comma 
+                        i++;
+                        continue;
+                }
+        }
+        j=0; //reset j
+        i++; //i is now one past the 2nd comma (start of latitude
+        while(uart_msg[i] != ','){ //loop until next comma
+                tmp[j] = uart_msg[i]; //copy over the character
+                i++; //increment i
+        }
+        cur_lat = atof(tmp); //convert
+        i+= 3; //skip over next comma (skip 'N/S')
+        j=0; //reset j
+        memset(tmp, '\0', 16); //clear temp string
+        while(uart_msg[i] != ','){ //loop until next comma
+                tmp[j] = uart_msg[i]; //copy over the character
+                i++; //increment i
+        }
+        cur_lon = atof(tmp); //convert
+        j=0; //reset j
+        memset(tmp, '\0', 16); //clear temp string
+        while(uart_msg[i] != 'M'){ //skip until end of altitude field
+                i++;
+        }
+        i--; //decrement i
+        while(uart_msg[i] != ','){//go back to start of altitude field
+                i--; //decrement i
+        }
+        i++; //increment to get past ','
+        while(uart_msg[i] != ','){ //loop until end of altitude float
+                tmp[j] = uart_msg[i];//copy character
+                i++;
+        }        cur_gpsalt = atof(tmp); //convert
+        mask = mask | 0x02; //set GPS complete bit in mask
+}
+
+
+
+/**************************************************
+* Title USART_IRQHandler
+* Description: Interrupt handler for UART4. Recives
+* 1 Byte from GPS upon interupt.
+***************************************************/
+void USART4_IRQHandler(void){//called when interrupt recieved
+        /* RXNE handler */
+        if(USART_GetITStatus(USART4, USART_IT_RXNE) != RESET) //USART4 = GPS
+        {
+                uart_msg[uart_it] = USART_RecieveData(USART4); //get character
+                uart_it++; //increment iterator 
+                if((int)uart_msg[uart_it-1] == 13){ //if carriage return was the recieved charater aka end of GPS data 
+                        uart_it = 0; //reset iterator
+                        process_gps(); //process the string
+                }
+
+        }
+}
+
 
 /** System Clock Configuration
 */
