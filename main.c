@@ -85,6 +85,62 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 /* USER CODE END 0 */
 
+	/* Structs for data from sensors */
+struct baro_data{
+	uint8_t p; //pressure bits
+	uint8_t pt; //pressure and temperature bits
+	uint8_t t; //temperature bits
+};
+	
+	
+uint8_t spi_read8(uint32_t spi)
+{
+	while (!(spi->SR & SPI_SR_RXNE))
+	return *(__IO uint8_t *)spi;
+//	return 0xFF;
+}
+	
+void spi_send8(uint32_t spi, uint8_t data)
+{
+	while (!(spi->SR & SPI_SR_TXE ))
+	*(__IO uint8_t *)spi = data;
+}	
+	
+  /******************************************
+*Title: Read_baro
+*Description: Reads data from the barometer  //TESTING
+*and returns it as a struct baro_data.
+******************************************/
+struct baro_data read_baro(uint8_t* mask){
+	struct baro_data temp;
+	//read ADC
+	spi_send8(SPI3, 0x00);
+	//read and save return
+	temp.p = spi_read8(SPI3);
+	temp.pt = spi_read8(SPI3);
+	temp.t = spi_read8(SPI3);
+	//if any data is bad clear the whole struct 
+	if(temp.p == 0x00){ 
+		temp.pt = 0x00;
+		temp.t = 0x00;
+		*mask = *mask & 0xFE; //set this control bit low
+	}
+	else if(temp.pt == 0x00){
+		temp.p = 0x00;
+		temp.t = 0x00;
+		*mask = *mask & 0xFE; //set this control bit low
+	}
+	else if(temp.t == 0x00){
+		temp.p = 0x00;
+		temp.pt = 0x00;
+		*mask = *mask & 0xFE; //set this control bit low
+	}
+	else{ //data is good
+		*mask = *mask | 0x01; //set this control bit high
+	}
+	return temp;
+}
+
 int main(void)
 {
 
@@ -128,54 +184,15 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
-	/* Structs for data from sensors */
-struct baro_data{
-	uint8_t p; //pressure bits
-	uint8_t pt; //pressure and temperature bits
-	uint8_t t; //temperature bits
-};
-	
-  /******************************************
-*Title: Read_baro
-*Description: Reads data from the barometer  //TESTING
-*and returns it as a struct baro_data.
-******************************************/
-struct baro_data read_baro(uint8_t* mask){
-	struct baro_data temp;
-	//read ADC
-	spi_send8(SPI3, 0x00);
-	//read and save return
-	temp.p = spi_read8(SPI3);
-	temp.pt = spi_read8(SPI3);
-	temp.t = spi_read8(SPI3);
-	//if any data is bad clear the whole struct 
-	if(temp.p == 0x00){ 
-		temp.pt = 0x00;
-		temp.t = 0x00;
-		*mask = *mask & 0xFE; //set this control bit low
-	}
-	else if(temp.pt == 0x00){
-		temp.p = 0x00;
-		temp.t = 0x00;
-		*mask = *mask & 0xFE; //set this control bit low
-	}
-	else if(temp.t == 0x00){
-		temp.p = 0x00;
-		temp.pt = 0x00;
-		*mask = *mask & 0xFE; //set this control bit low
-	}
-	else{ //data is good
-		*mask = *mask | 0x01; //set this control bit high
-	}
-	return temp;
-}
-	
-	
-	
+
   while (1)
   {
-	  //char Test[] = "AAAAAAAAAAAAAAAAAA\n";
-	  HAL_UART_Transmit(&huart5, (char*)read_baro(0), sizeof(Test), HAL_MAX_DELAY); //testing UART5 TX
+	  char Test[15]; //buffer
+	  memset(Test, '\0',15); //sizes buffer 
+	  struct baro_data temp = read_baro(0); //gets baro data
+	  fprintf(Test, "%d|%d|%d", temp.p, temp.pt, temp.t); //fills the buffer struct to char pointer
+		 
+	  HAL_UART_Transmit(&huart5, Test, sizeof(Test), HAL_MAX_DELAY); //testing UART5 TX sends data
 	     HAL_Delay(1000);
 	     GPIOC->ODR = 0x0000FFFF;
 	     HAL_Delay(1000);
