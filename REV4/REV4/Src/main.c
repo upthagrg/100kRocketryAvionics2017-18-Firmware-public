@@ -81,17 +81,23 @@ float cur_gpsalt; //holds current gps altitude info
 uint8_t mask;
 
 
-
-void spi_send8(uint32_t spi, uint8_t data)
+//(SPI_TypeDef *)
+void spi_send8(SPI_TypeDef* spi, uint8_t data)
 {
-	while (!(spi->SR & SPI_SR_TXE ))
-	*(__IO uint8_t *)spi = data;
+	//HAL_StatusTypeDef HAL_SPI_Trnsmit(SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t Size, uint32_t Timeout)
+	//while (!(spi->SR & SPI_SR_TXE ))
+	//*(__IO uint8_t *)spi = data;
+	HAL_StatusTypeDef HAL_SPI_Transmit(spi, &data, 1, 0xFFFFFFFF);
 }
 
-uint8_t spi_read8(uint32_t spi)
+uint8_t spi_read8(SPI_TypeDef* spi)
 {
-	while (!(spi->SR & SPI_SR_RXNE))
-	return *(__IO uint8_t *)spi;
+	uint8_t data;
+	//HAL_StatusTypeDef HAL_SPI_Receive(SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t Size, uint32_t Timeout)
+	//while (!(spi->SR & SPI_SR_RXNE))
+	//return *(__IO uint8_t *)spi;
+	HAL_StatusTypeDef HAL_SPI_Receive(spi, &data, 1, 0xFFFFFFFF);
+	return data;
 //	return 0xFF;
 }
 
