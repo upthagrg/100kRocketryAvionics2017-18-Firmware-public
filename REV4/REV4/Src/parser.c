@@ -23,13 +23,10 @@ struct GPSObj parser(char data[])
             while (token2)
             {
                 t[i] = token2;
-                //printf(" %s\n", token2);
                 token2 = strtok_r(NULL, s2, &saveptr2);
                 i++;
-                //   printf(" -%s\n", token2);
             }
             i = 0;
-            
             if (strncmp(t[2], "A", 2) == 0)
             {
                 r._lat = atof(t[3]);
