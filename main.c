@@ -121,7 +121,7 @@ uint8_t spi_read8(SPI_TypeDef* spi)
 *Description: Reads data from the barometer
 *and returns it as a struct baro_data.
 ******************************************/
-struct baro_data read_baro(uint8_t* mask){
+struct baro_data read_baro(){
 	struct baro_data temp;
 	//read ADC
 	spi_send8(SPI3, 0x00);
@@ -130,6 +130,7 @@ struct baro_data read_baro(uint8_t* mask){
 	temp.pt = spi_read8(SPI3);
 	temp.t = spi_read8(SPI3);
 	//if any data is bad clear the whole struct
+/*
 	if(temp.p == 0x00){
 		temp.pt = 0x00;
 		temp.t = 0x00;
@@ -148,6 +149,7 @@ struct baro_data read_baro(uint8_t* mask){
 	else{ //data is good
 		*mask = *mask | 0x01; //set this control bit high
 	}
+*/
 	return temp;
 }
 
@@ -155,7 +157,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-	char Test[15]; //buffer
+	 char Test[128]; //buffer
 	struct baro_data temp; //gets baro data
   /* USER CODE END 1 */
 
@@ -199,25 +201,18 @@ int main(void)
   while (1)
   {
 
-	  memset(Test, '\0',15); //sizes buffer
-	  temp = read_baro(0); //gets baro data
-	  sprintf(Test, "%d|%d|%d", temp.p, temp.pt, temp.t); //fills the buffer struct to char pointer
+	  memset(Test, '\0',128); //sizes buffer
+	  temp = read_baro(); //gets baro data
+	 // sprintf(Test, "%d|%d|%d", temp.p, temp.pt, temp.t); //fills the buffer struct to char pointer
+	  sprintf(Test, "TELEM: BARO: %d | %d | %d EOT!",  temp.p, temp.pt, temp.t); //fills the buffer struct to char pointer
 
 
-	  HAL_UART_Transmit(&huart5, Test, sizeof(Test), HAL_MAX_DELAY); //testing UART5 TX sends data
-	     HAL_Delay(1000);
+	  HAL_UART_Transmit(&huart5, (unsigned char*)Test, sizeof(Test), HAL_MAX_DELAY); //testing UART5 TX sends data
+	     HAL_Delay(500);
 	     GPIOC->ODR = 0x0000FFFF;
-	     HAL_Delay(1000);
+	     HAL_Delay(500);
 	     GPIOC->ODR = 0x00000000;
-  /* USER CODE END WHILE
-	  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_SET);
-	  		HAL_Delay(500);
-	  		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_SET);
-	  		HAL_Delay(500);
-	  		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_RESET);
-	  		HAL_Delay(500);
-	  		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_RESET);
-	  		HAL_Delay(500);
+
   /* USER CODE BEGIN 3 */
 
   }
@@ -475,7 +470,7 @@ static void MX_UART5_Init(void)
   huart5.Init.BaudRate = 19200;
   huart5.Init.WordLength = UART_WORDLENGTH_8B;
   huart5.Init.StopBits = UART_STOPBITS_1;
-  huart5.Init.Parity = UART_PARITY_EVEN;
+  huart5.Init.Parity = UART_PARITY_NONE;
   huart5.Init.Mode = UART_MODE_TX_RX;
   huart5.Init.HwFlowCtl = UART_HWCONTROL_NONE;
   huart5.Init.OverSampling = UART_OVERSAMPLING_16;
