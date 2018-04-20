@@ -1,7 +1,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f3xx_hal.h"
-
+#include <stdlib.h>
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c2;
 SPI_HandleTypeDef hspi2;
@@ -83,6 +83,51 @@ uint8_t spi_read8(uint32_t spi)
 	while (!(spi->SR & SPI_SR_RXNE))
 	return *(__IO uint8_t *)spi;
 //	return 0xFF;
+}
+/*************************************************
+* Title: parser
+* Description: Parses incoming GPS data for 
+* latitude and longitude.
+*************************************************/
+struct gps_data parser(char data[])
+{
+    const char s1[2] = "\r";
+    const char s2[2] = ",";
+    char *token1, *token2;
+    char *saveptr1, *saveptr2;
+    token1 = strtok_r(data, s1, &saveptr1);
+    char des[80];
+//    struct GPSObj r;
+    struct gps_data r;
+    while (token1 != NULL)
+    {
+        strcpy(des, token1);
+        token2 = strtok_r(des, s2, &saveptr2);
+        const char *t[15];
+        int i = 0;
+        if (strncmp(token2, "$GNRMC", 7) == 0)
+        {
+            while (token2)
+            {
+                t[i] = token2;
+                token2 = strtok_r(NULL, s2, &saveptr2);
+                i++;
+            }
+            i = 0;
+            if (strncmp(t[2], "A", 2) == 0)
+            {
+                r.lat = atof(t[3]);
+                r.lon = atof(t[5]);
+            }
+            else {
+                r.lat = 0.0;
+                r.lon = 0.0;
+            }
+        }
+        token1 = strtok_r(NULL, s1, &saveptr1);
+    }
+    r.alt = 0;
+    return r;
 }
 
 /**************************************************
