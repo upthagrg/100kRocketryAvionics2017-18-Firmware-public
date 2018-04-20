@@ -51,7 +51,7 @@ struct gps_data{
 
 //struct holding a float after raw data is processed
 struct data_float{
-float data;
+	float data;
 };
 
 //A struct for holding a set of data from all the sensors.
@@ -73,17 +73,16 @@ struct raw{
 	char delim;
 };
 
-void spi_send8(uint32_t spi, uint8_t data)
+void spi_send8(SPI_TypeDef* spi, uint8_t data)
 {
-	while (!(spi->SR & SPI_SR_TXE ))
-	*(__IO uint8_t *)spi = data;
+	HAL_SPI_Transmit(spi, &data, 1, 0xFFFFFFFF);
 }
 
-uint8_t spi_read8(uint32_t spi)
+uint8_t spi_read8(SPI_TypeDef* spi)
 {
-	while (!(spi->SR & SPI_SR_RXNE))
-	return *(__IO uint8_t *)spi;
-//	return 0xFF;
+	uint8_t data;
+	HAL_SPI_Receive(spi, &data, 1, 0xFFFFFFFF);
+	return data;
 }
 /*************************************************
 * Title: parser
