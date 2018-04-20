@@ -85,6 +85,25 @@ uint8_t spi_read8(uint32_t spi)
 //	return 0xFF;
 }
 
+/**************************************************
+* Title USART_IRQHandler
+* Description: Interrupt handler for UART4. Recives
+* 1 Byte from GPS upon interupt.
+***************************************************/
+void USART4_IRQHandler(void){//called when interrupt recieved
+        /* RXNE handler */
+        if(USART_GetITStatus(USART4, USART_IT_RXNE) != RESET) //USART4 = GPS
+        {
+                uart_msg[uart_it] = USART_RecieveData(USART4); //get character
+                uart_it++; //increment iterator 
+                if((int)uart_msg[uart_it-1] == 13){ //if carriage return was the recieved charater aka end of GPS data 
+                        uart_it = 0; //reset iterator
+                        process_gps(); //process the string
+                }
+
+        }
+}
+
 /******************************************
 *Title: Read_baro
 *Description: Reads data from the barometer
@@ -316,6 +335,12 @@ void get_data(){
 	i=0;
 }
 
+/*****************************************
+*Title: power_led and tx_led control functions
+*Description: Turns on/off power LEDs and blinks
+TX LED when TX is successful -> goes into TX loop
+*****************************************/
+
 void power_led_on(){
      HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_SET);
 }
@@ -350,7 +375,6 @@ int main(void)
   /* Inits here */
   HAL_Init(); //initializes HAL, also automatically calls HAL_InitTick() for the get_time() function
   SystemClock_Config();
-  power_led_on();
   	MX_GPIO_Init();
 	MX_USB_PCD_Init();
 	MX_TIM1_Init();
@@ -359,7 +383,8 @@ int main(void)
 	MX_UART5_Init();
 	MX_SPI2_Init();
 	MX_SPI3_Init();
-
+	power_led_on(); //must happen after MX_GPIO_Init()
+	
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -374,6 +399,13 @@ int main(void)
   }
   power_led_off();
 }
+
+//*************************************************************************
+//*************************************************************************
+//DO NOT TOUCH ANYTHING BELOW THIS LINE. THESE ARE INITS FOR THE SYSTEM
+//CREATED BY TRUESTUDIO
+//*************************************************************************
+//*************************************************************************
 
 /** System Clock Configuration
 */
