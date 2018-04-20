@@ -2,6 +2,7 @@
 #include "main.h"
 #include "stm32f3xx_hal.h"
 #include <stdlib.h>
+#include "../Inc/parser.h"  
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c2;
 SPI_HandleTypeDef hspi2;
