@@ -1,7 +1,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f3xx_hal.h"
-
+#include <stdlib.h>
+//#include "../Inc/parser.h"  
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c2;
 SPI_HandleTypeDef hspi2;
@@ -50,7 +51,7 @@ struct gps_data{
 
 //struct holding a float after raw data is processed
 struct data_float{
-float data;
+	float data;
 };
 
 //A struct for holding a set of data from all the sensors.
@@ -72,17 +73,67 @@ struct raw{
 	char delim;
 };
 
-void spi_send8(uint32_t spi, uint8_t data)
+/*************************************************
+* Title: spi_send8() and spi_read8
+* Description: Sends/reads data on SPI bus
+*************************************************/
+
+void spi_send8(SPI_TypeDef* spi, uint8_t data)
 {
-	while (!(spi->SR & SPI_SR_TXE ))
-	*(__IO uint8_t *)spi = data;
+	HAL_SPI_Transmit(spi, &data, 1, 0xFFFFFFFF);
 }
 
-uint8_t spi_read8(uint32_t spi)
+uint8_t spi_read8(SPI_TypeDef* spi)
 {
-	while (!(spi->SR & SPI_SR_RXNE))
-	return *(__IO uint8_t *)spi;
-//	return 0xFF;
+	uint8_t data;
+	HAL_SPI_Receive(spi, &data, 1, 0xFFFFFFFF);
+	return data;
+}
+
+/*************************************************
+* Title: parser
+* Description: Parses incoming GPS data for 
+* latitude and longitude.
+*************************************************/
+struct gps_data parser(char data[])
+{
+    const char s1[2] = "\r";
+    const char s2[2] = ",";
+    char *token1, *token2;
+    char *saveptr1, *saveptr2;
+    token1 = strtok_r(data, s1, &saveptr1);
+    char des[80];
+//    struct GPSObj r;
+    struct gps_data r;
+    while (token1 != NULL)
+    {
+        strcpy(des, token1);
+        token2 = strtok_r(des, s2, &saveptr2);
+        const char *t[15];
+        int i = 0;
+        if (strncmp(token2, "$GNRMC", 7) == 0)
+        {
+            while (token2)
+            {
+                t[i] = token2;
+                token2 = strtok_r(NULL, s2, &saveptr2);
+                i++;
+            }
+            i = 0;
+            if (strncmp(t[2], "A", 2) == 0)
+            {
+                r.lat = atof(t[3]);
+                r.lon = atof(t[5]);
+            }
+            else {
+                r.lat = 0.0;
+                r.lon = 0.0;
+            }
+        }
+        token1 = strtok_r(NULL, s1, &saveptr1);
+    }
+    r.alt = 0;
+    return r;
 }
 
 /**************************************************
@@ -389,14 +440,48 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	RCC->AHBENR |= RCC_AHBENR_GPIOCEN; // Enable GPIOC clock
-	GPIOC->MODER = GPIOC->MODER & 0xFFFF0000 | 0x00005555; // 0b01: Output
-  	GPIOC->OTYPER = GPIOC->OTYPER & 0xFFFFFF00; // 0b0 : PP (R)
-  	GPIOC->OSPEEDR = GPIOC->OSPEEDR & 0xFFFF0000 | 0x0000FFFF; // 0b11: 50MHz
-  	GPIOC->PUPDR = GPIOC->PUPDR & 0xFFFF0000; // 0b00: no PU/PD (R)
-  	GPIOC->ODR = GPIOC->ODR & 0xFFFFFF00 | 0x02;
-  	
-  }
+  	//start_time = get_time();
+  	//while(get_time() - start_time < timeout){
+		/*If baro data is available && packet does not have data yet{
+		retrieve data from baro
+		put data into raw packet
+		continue
+		}*/
+
+		/*If MPU data is available && packet does not have data yet{
+		retrieve data from MPU
+		put data into raw packet
+		continue
+		}*/
+
+		/*If GPS data is available && packet does not have data yet{
+		retrieve data from GPS
+		put data into raw packet
+		continue
+		}*/
+		
+		/*If all sensors have data in packet{
+		break from while loop
+		}
+	}*/
+		
+		/*If baro data is null{
+		put dummy data in baro struct
+		}*/
+		
+		/*If MPU data is null{
+			put dummy data in MPU struct
+		}*/
+		
+		/*If GPS data is null{
+			put dummy data in GPS struct
+		}*/
+		
+		//write raw packet to EEPROM
+		//compile data into organized packet
+		//convert get_time() to milliseconds and append value onto packet
+		//send packet to TXRX
+	}
   power_led_off();
 }
 
