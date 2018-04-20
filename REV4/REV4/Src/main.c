@@ -1,8 +1,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f3xx_hal.h"
-#include <stdlib.h>
-#include "../Inc/parser.h"  
+
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c2;
 SPI_HandleTypeDef hspi2;
@@ -73,8 +72,19 @@ struct raw{
 	char delim;
 };
 
+//global variables
+char uart_msg[128];
+int uart_it=0;
+float cur_lat; //holds current latitude info
+float cur_lon; //holds current longitude info
+float cur_gpsalt; //holds current gps altitude info
+uint8_t mask;
+
+
+//(SPI_TypeDef *)
 void spi_send8(SPI_TypeDef* spi, uint8_t data)
 {
+	//HAL_StatusTypeDef HAL_SPI_Trnsmit(SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t Size, uint32_t Timeout)
 	//while (!(spi->SR & SPI_SR_TXE ))
 	//*(__IO uint8_t *)spi = data;
 	HAL_StatusTypeDef HAL_SPI_Transmit(spi, &data, 1, 0xFFFFFFFF);
@@ -82,77 +92,13 @@ void spi_send8(SPI_TypeDef* spi, uint8_t data)
 
 uint8_t spi_read8(SPI_TypeDef* spi)
 {
+	uint8_t data;
+	//HAL_StatusTypeDef HAL_SPI_Receive(SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t Size, uint32_t Timeout)
 	//while (!(spi->SR & SPI_SR_RXNE))
 	//return *(__IO uint8_t *)spi;
-	//return 0xFF;
-	uint8_t data;
 	HAL_StatusTypeDef HAL_SPI_Receive(spi, &data, 1, 0xFFFFFFFF);
-        return data;
-
-}
-/*************************************************
-* Title: parser
-* Description: Parses incoming GPS data for 
-* latitude and longitude.
-*************************************************/
-struct gps_data parser(char data[])
-{
-    const char s1[2] = "\r";
-    const char s2[2] = ",";
-    char *token1, *token2;
-    char *saveptr1, *saveptr2;
-    token1 = strtok_r(data, s1, &saveptr1);
-    char des[80];
-//    struct GPSObj r;
-    struct gps_data r;
-    while (token1 != NULL)
-    {
-        strcpy(des, token1);
-        token2 = strtok_r(des, s2, &saveptr2);
-        const char *t[15];
-        int i = 0;
-        if (strncmp(token2, "$GNRMC", 7) == 0)
-        {
-            while (token2)
-            {
-                t[i] = token2;
-                token2 = strtok_r(NULL, s2, &saveptr2);
-                i++;
-            }
-            i = 0;
-            if (strncmp(t[2], "A", 2) == 0)
-            {
-                r.lat = atof(t[3]);
-                r.lon = atof(t[5]);
-            }
-            else {
-                r.lat = 0.0;
-                r.lon = 0.0;
-            }
-        }
-        token1 = strtok_r(NULL, s1, &saveptr1);
-    }
-    r.alt = 0;
-    return r;
-}
-
-/**************************************************
-* Title USART_IRQHandler
-* Description: Interrupt handler for UART4. Recives
-* 1 Byte from GPS upon interupt.
-***************************************************/
-void USART4_IRQHandler(void){//called when interrupt recieved
-        /* RXNE handler */
-        if(USART_GetITStatus(USART4, USART_IT_RXNE) != RESET) //USART4 = GPS
-        {
-                uart_msg[uart_it] = USART_RecieveData(USART4); //get character
-                uart_it++; //increment iterator 
-                if((int)uart_msg[uart_it-1] == 13){ //if carriage return was the recieved charater aka end of GPS data 
-                        uart_it = 0; //reset iterator
-                        process_gps(); //process the string
-                }
-
-        }
+	return data;
+//	return 0xFF;
 }
 
 /******************************************
@@ -188,97 +134,6 @@ struct baro_data read_baro(uint8_t* mask){
 		*mask = *mask | 0x01; //set this control bit high
 	}
 	return temp;
-}
-
-/****************************************
-*Title: get_mpu_byte
-*Description: gets next data byte from MPU
-****************************************/
-
-uint8_t get_mpu_byte(uint8_t reg){
-    uint8_t data = 0;
-//    uint8_t addr = 0x69;
-
-    I2C2->CR2 &= ~(I2C_CR2_RD_WRN);
-    I2C2->CR2 &= ~(0x69 << 16); //address of the MPU
-    I2C2->CR2 |= I2C_CR2_START | (1 << 16); 
-    while(I2C2->CR2 & I2C_CR2_START);
-
-    I2C2->TXDR = reg; // write address of register
-    while (!(I2C2->ISR & I2C_ISR_TXE));
-
-    I2C2->CR2 |= I2C_CR2_RD_WRN;
-    I2C2->CR2 |= I2C_CR2_START | (1 << 16);
-    while(I2C2->CR2 & I2C_CR2_START);
-    while (!(I2C2->ISR & I2C_ISR_RXNE));
-    data = I2C2->RXDR;
-    I2C2->CR2 |= I2C_CR2_STOP;
-    while(I2C2->CR2 & I2C_CR2_STOP);
-    return data;
-}
-
-/****************************************
-*Title: get_mpu_data
-*Description: gets data from MPU byte
-****************************************/
-
-void get_mpu_data(struct mpudata* out){
-	uint8_t temph, templ;
-	uint8_t* pos;
-	//get accel x high
-	temph = get_mpu_byte(0x3B);
-	//get accel x low
-	templ = get_mpu_byte(0x3C);
-	//put in to struct
-	pos = &(out->accelx)
-	*pos = tmph;
-	pos++;
-	*pos = tmpl;
-	pos++;
-	//get accel y high	
-	temph = get_mpu_byte(0x3D);
-	//get accel y low
-	templ = get_mpu_byte(0x3E);
-	//put in to struct
-	*pos = temph;
-	pos++;
-	*pos = tmpl;
-	pos++;
-	//get accel z high
-	temph = get_mpu_byte(0x3F);
-	//get accel z low
-	templ = get_mpu_byte(0x40);
-	//put in to struct
-	*pos = temph;
-	pos++;
-	*pos = templ;
-	pos++;
-	//get gyro x high
-	temph = get_mpu_byte(0x3F);
-	//get gyro x low
-	templ = get_mpu_byte(0x3F);
-	//put in to struct
-	*pos = temph;
-	pos++;
-	*pos = templ;
-	pos++;
-	//get gyro y high
-	temph = get_mpu_byte(0x3F);
-	//get gyro y low
-	templ = get_mpu_byte(0x3F);
-	//put in to struct
-	*pos = temph;
-	pos++;
-	*pos = templ;
-	pos++;
-	//get gyro z high
-	temph = get_mpu_byte(0x3F);
-	//get gyro z low
-	templ = get_mpu_byte(0x3F);
-	//put in to struct
-	*pos = temph;
-	pos++;
-	*pos = templ;
 }
 
 /****************************************
@@ -360,12 +215,147 @@ void write_to_eeprom(struct raw* data, int* addr){
 	}while(sreg > 0); //loop unitl page write is complete
 }
 
+uint8_t get_mpu_byte(uint8_t reg){
+    uint8_t data = 0;
+//    uint8_t addr = 0x69;
+
+    I2C2->CR2 &= ~(I2C_CR2_RD_WRN);
+    I2C2->CR2 &= ~(0x69 << 16); //address of the MPU
+    I2C2->CR2 |= I2C_CR2_START | (1 << 16); 
+    while(I2C2->CR2 & I2C_CR2_START);
+
+    I2C2->TXDR = reg; // write address of register
+    while (!(I2C2->ISR & I2C_ISR_TXE));
+
+    I2C2->CR2 |= I2C_CR2_RD_WRN;
+    I2C2->CR2 |= I2C_CR2_START | (1 << 16);
+    while(I2C2->CR2 & I2C_CR2_START);
+    while (!(I2C2->ISR & I2C_ISR_RXNE));
+    data = I2C2->RXDR;
+    I2C2->CR2 |= I2C_CR2_STOP;
+    while(I2C2->CR2 & I2C_CR2_STOP);
+    return data;
+}
+
+void get_mpu_data(struct mpudata* out){
+	uint8_t temph, templ;
+	uint8_t* pos;
+	//get accel x high
+	temph = get_mpu_byte(0x3B);
+	//get accel x low
+	templ = get_mpu_byte(0x3C);
+	//put in to struct
+	pos = &(out->accelx)
+	*pos = tmph;
+	pos++;
+	*pos = tmpl;
+	pos++;
+	//get accel y high	
+	temph = get_mpu_byte(0x3D);
+	//get accel y low
+	templ = get_mpu_byte(0x3E);
+	//put in to struct
+	*pos = temph;
+	pos++;
+	*pos = tmpl;
+	pos++;
+	//get accel z high
+	temph = get_mpu_byte(0x3F);
+	//get accel z low
+	templ = get_mpu_byte(0x40);
+	//put in to struct
+	*pos = temph;
+	pos++;
+	*pos = templ;
+	pos++;
+	//get gyro x high
+	temph = get_mpu_byte(0x3F);
+	//get gyro x low
+	templ = get_mpu_byte(0x3F);
+	//put in to struct
+	*pos = temph;
+	pos++;
+	*pos = templ;
+	pos++;
+	//get gyro y high
+	temph = get_mpu_byte(0x3F);
+	//get gyro y low
+	templ = get_mpu_byte(0x3F);
+	//put in to struct
+	*pos = temph;
+	pos++;
+	*pos = templ;
+	pos++;
+	//get gyro z high
+	temph = get_mpu_byte(0x3F);
+	//get gyro z low
+	templ = get_mpu_byte(0x3F);
+	//put in to struct
+	*pos = temph;
+	pos++;
+	*pos = templ;
+	mask = mask | 0x04; //set MPU complete bit in mask
+
+}
+
+/**************************************************
+* Title: process_gps
+* Description: Processes the GPS string into just 
+* 3 floats. The GPS message must be fully recieves
+* before this function is called. 
+**************************************************/
+void process_gps(){
+        int i=0;
+        int j=0;
+        char tmp[16]; //temporary string
+        memset(tmp, '\0', 16); //clear temp string
+        for(j; j<2; j++){ //skip 2 sections based off of omma delimiters 
+                while(uart_msg[i] != ','){ //look for comma 
+                        i++;
+                        continue;
+                }
+        }
+        j=0; //reset j
+        i++; //i is now one past the 2nd comma (start of latitude
+        while(uart_msg[i] != ','){ //loop until next comma
+                tmp[j] = uart_msg[i]; //copy over the character
+                i++; //increment i
+        }
+        cur_lat = atof(tmp); //convert
+        i+= 3; //skip over next comma (skip 'N/S')
+        j=0; //reset j
+        memset(tmp, '\0', 16); //clear temp string
+        while(uart_msg[i] != ','){ //loop until next comma
+                tmp[j] = uart_msg[i]; //copy over the character
+                i++; //increment i
+        }
+        cur_lon = atof(tmp); //convert
+        j=0; //reset j
+        memset(tmp, '\0', 16); //clear temp string
+        while(uart_msg[i] != 'M'){ //skip until end of altitude field
+                i++;
+        }
+        i--; //decrement i
+        while(uart_msg[i] != ','){//go back to start of altitude field
+                i--; //decrement i
+        }
+        i++; //increment to get past ','
+        while(uart_msg[i] != ','){ //loop until end of altitude float
+                tmp[j] = uart_msg[i];//copy character
+                i++;
+        }
+        cur_gpsalt = atof(tmp); //convert
+        mask = mask | 0x02; //set GPS complete bit in mask
+}
+
+
+
 void get_data(){
 	struct raw raw_sets[8]; //raw sets we are building
 	struct packet cur_packet; //packet we are building
 	int i=0;//iterator
 	int addr; //holds EEPROM address
-	uint8_t mask = 0x00; //clear the mask used for checking completed sections of data
+	mask = 0x00; //clear the mask used for checking completed sections of data
 	uint8_t temp = 0x00; //mask check
 	uint16_t id = 0; //ide for logging to eeprom
 	addr = 0; //set starting address to 0
@@ -385,57 +375,26 @@ void get_data(){
 	}
 	i=0;
 }
-
-/*****************************************
-*Title: power_led and tx_led control functions
-*Description: Turns on/off power LEDs and blinks
-TX LED when TX is successful -> goes into TX loop
-*****************************************/
-
-void power_led_on(){
-     HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_SET);
-}
-
-void power_led_off(){
-     HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_RESET);
-}
-
-void tx_led_blink(){ //put this in TX loop and send to EEPROM loop
-     HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_SET);
-     HAL_Delay(50);
-     HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_RESET);
-}
-
-/*****************************************
-*Title: get_time
-*Description: Returns time since system
-start of runtime in milliseconds
-*****************************************/
-
-unsigned int get_time(){
-	return HAL_GetTick(); //should return time in ticks since HAL_InitTick(), needs to be converted to milliseconds
-}
-
-/****************************************
-*Title: Main
-*Description: Main loop
-****************************************/                       
+         
+/* Main */                       
 int main(void)
 {
 
   /* Inits here */
-  HAL_Init(); //initializes HAL, also automatically calls HAL_InitTick() for the get_time() function
+  HAL_Init();
   SystemClock_Config();
-  	MX_GPIO_Init();
-	MX_USB_PCD_Init();
+  MX_GPIO_Init();
+/*  MX_USB_PCD_Init();
 	MX_TIM1_Init();
 	MX_I2C2_Init();
-	MX_UART4_Init();
-	MX_UART5_Init();
 	MX_SPI2_Init();
 	MX_SPI3_Init();
-	power_led_on(); //must happen after MX_GPIO_Init()
-	
+	MX_UART4_Init();
+	MX_UART5_Init();
+*/
+	MX_SPI2_Init();
+	MX_SPI3_Init();
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -445,18 +404,84 @@ int main(void)
   	GPIOC->OTYPER = GPIOC->OTYPER & 0xFFFFFF00; // 0b0 : PP (R)
   	GPIOC->OSPEEDR = GPIOC->OSPEEDR & 0xFFFF0000 | 0x0000FFFF; // 0b11: 50MHz
   	GPIOC->PUPDR = GPIOC->PUPDR & 0xFFFF0000; // 0b00: no PU/PD (R)
-  	GPIOC->ODR = GPIOC->ODR & 0xFFFFFF00 | 0x02;
   	
+  	GPIOC->ODR = GPIOC->ODR & 0xFFFFFF00 | 0x02;
+  	while(1){
+	  continue;
+  	}
   }
-  power_led_off();
 }
 
-//*************************************************************************
-//*************************************************************************
-//DO NOT TOUCH ANYTHING BELOW THIS LINE. THESE ARE INITS FOR THE SYSTEM
-//CREATED BY TRUESTUDIO
-//*************************************************************************
-//*************************************************************************
+/**************************************************
+* Title: process_gps
+* Description: Processes the GPS string into just 
+* 3 floats. The GPS message must be fully recieves
+* before this function is called. 
+**************************************************/
+void process_gps(){
+        int i=0;
+        int j=0;
+        char tmp[16]; //temporary string
+        memset(tmp, '\0', 16); //clear temp string
+        for(j; j<2; j++){ //skip 2 sections based off of omma delimiters 
+                while(uart_msg[i] != ','){ //look for comma 
+                        i++;
+                        continue;
+                }
+        }
+        j=0; //reset j
+        i++; //i is now one past the 2nd comma (start of latitude
+        while(uart_msg[i] != ','){ //loop until next comma
+                tmp[j] = uart_msg[i]; //copy over the character
+                i++; //increment i
+        }
+        cur_lat = atof(tmp); //convert
+        i+= 3; //skip over next comma (skip 'N/S')
+        j=0; //reset j
+        memset(tmp, '\0', 16); //clear temp string
+        while(uart_msg[i] != ','){ //loop until next comma
+                tmp[j] = uart_msg[i]; //copy over the character
+                i++; //increment i
+        }
+        cur_lon = atof(tmp); //convert
+        j=0; //reset j
+        memset(tmp, '\0', 16); //clear temp string
+        while(uart_msg[i] != 'M'){ //skip until end of altitude field
+                i++;
+        }
+        i--; //decrement i
+        while(uart_msg[i] != ','){//go back to start of altitude field
+                i--; //decrement i
+        }
+        i++; //increment to get past ','
+        while(uart_msg[i] != ','){ //loop until end of altitude float
+                tmp[j] = uart_msg[i];//copy character
+                i++;
+        }        cur_gpsalt = atof(tmp); //convert
+        mask = mask | 0x02; //set GPS complete bit in mask
+}
+
+
+
+/**************************************************
+* Title USART_IRQHandler
+* Description: Interrupt handler for UART4. Recives
+* 1 Byte from GPS upon interupt.
+***************************************************/
+void USART4_IRQHandler(void){//called when interrupt recieved
+        /* RXNE handler */
+        if(USART_GetITStatus(USART4, USART_IT_RXNE) != RESET) //USART4 = GPS
+        {
+                uart_msg[uart_it] = USART_RecieveData(USART4); //get character
+                uart_it++; //increment iterator 
+                if((int)uart_msg[uart_it-1] == 13){ //if carriage return was the recieved charater aka end of GPS data 
+                        uart_it = 0; //reset iterator
+                        process_gps(); //process the string
+                }
+
+        }
+}
+
 
 /** System Clock Configuration
 */
