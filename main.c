@@ -95,22 +95,29 @@ struct baro_data{
 };
 
 
+//(SPI_TypeDef *)
+void spi_send8(SPI_TypeDef* spi, uint8_t data)
+{
+	//HAL_StatusTypeDef HAL_SPI_Trnsmit(SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t Size, uint32_t Timeout)
+	//while (!(spi->SR & SPI_SR_TXE ))
+	//*(__IO uint8_t *)spi = data;
+	HAL_StatusTypeDef HAL_SPI_Transmit(spi, &data, 1, 0xFFFFFFFF);
+}
+
 uint8_t spi_read8(SPI_TypeDef* spi)
 {
-	while (!(spi->SR & SPI_SR_RXNE)){continue;}
-	return (uint8_t)(*(__IO uint8_t *)spi);
+	uint8_t data;
+	//HAL_StatusTypeDef HAL_SPI_Receive(SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t Size, uint32_t Timeout)
+	//while (!(spi->SR & SPI_SR_RXNE))
+	//return *(__IO uint8_t *)spi;
+	HAL_StatusTypeDef HAL_SPI_Receive(spi, &data, 1, 0xFFFFFFFF);
+	return data;
 //	return 0xFF;
 }
 
-void spi_send8(SPI_TypeDef* spi, uint8_t data)
-{
-	while (!(spi->SR & SPI_SR_TXE ))
-	*(__IO uint8_t *)spi = data;
-}
-
-  /******************************************
+ /******************************************
 *Title: Read_baro
-*Description: Reads data from the barometer  //TESTING
+*Description: Reads data from the barometer
 *and returns it as a struct baro_data.
 ******************************************/
 struct baro_data read_baro(uint8_t* mask){
@@ -121,8 +128,8 @@ struct baro_data read_baro(uint8_t* mask){
 	temp.p = spi_read8(SPI3);
 	temp.pt = spi_read8(SPI3);
 	temp.t = spi_read8(SPI3);
-	//if any data is bad clear the whole struct
-	if(temp.p == 0x00){
+	//if any data is bad clear the whole struct 
+	if(temp.p == 0x00){ 
 		temp.pt = 0x00;
 		temp.t = 0x00;
 		*mask = *mask & 0xFE; //set this control bit low
