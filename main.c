@@ -5,7 +5,7 @@
   ******************************************************************************
   ** This notice applies to any and all portions of this file
   * that are not between comment pairs USER CODE BEGIN and
-  * USER CODE END. Other portions of this file, whether 
+  * USER CODE END. Other portions of this file, whether
   * inserted by the user or by software development tools
   * are owned by their respective copyright owners.
   *
@@ -76,7 +76,7 @@ static void MX_UART4_Init(void);
 static void MX_UART5_Init(void);
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
-                                
+
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
@@ -96,23 +96,24 @@ struct baro_data{
 
 
 //(SPI_TypeDef *)
-void spi_send8(SPI_TypeDef* spi, uint8_t data)
+void spi_send8(SPI_TypeDef* spi, uint8_t* data)
 {
+	SPI_HandleTypeDef hspi = { .Instance = spi };
 	//HAL_StatusTypeDef HAL_SPI_Trnsmit(SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t Size, uint32_t Timeout)
 	//while (!(spi->SR & SPI_SR_TXE ))
 	//*(__IO uint8_t *)spi = data;
-	HAL_StatusTypeDef HAL_SPI_Transmit(spi, &data, 1, 0xFFFFFFFF);
+	HAL_SPI_Transmit(&hspi, data, 1, 0xFFFFFFFF);
 }
 
 uint8_t spi_read8(SPI_TypeDef* spi)
 {
+	SPI_HandleTypeDef hspi = { .Instance = spi };
 	uint8_t data;
 	//HAL_StatusTypeDef HAL_SPI_Receive(SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t Size, uint32_t Timeout)
 	//while (!(spi->SR & SPI_SR_RXNE))
 	//return *(__IO uint8_t *)spi;
-	HAL_StatusTypeDef HAL_SPI_Receive(spi, &data, 1, 0xFFFFFFFF);
+    HAL_SPI_Receive(&hspi, &data, 1, 0xFFFFFFFF);
 	return data;
-//	return 0xFF;
 }
 
  /******************************************
@@ -128,8 +129,8 @@ struct baro_data read_baro(uint8_t* mask){
 	temp.p = spi_read8(SPI3);
 	temp.pt = spi_read8(SPI3);
 	temp.t = spi_read8(SPI3);
-	//if any data is bad clear the whole struct 
-	if(temp.p == 0x00){ 
+	//if any data is bad clear the whole struct
+	if(temp.p == 0x00){
 		temp.pt = 0x00;
 		temp.t = 0x00;
 		*mask = *mask & 0xFE; //set this control bit low
@@ -569,7 +570,7 @@ void _Error_Handler(char * file, int line)
   while(1) 
   {
   }
-  /* USER CODE END Error_Handler_Debug */ 
+  /* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef USE_FULL_ASSERT
@@ -594,10 +595,10 @@ void assert_failed(uint8_t* file, uint32_t line)
 
 /**
   * @}
-  */ 
+  */
 
 /**
   * @}
-*/ 
+*/
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
