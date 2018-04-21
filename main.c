@@ -96,23 +96,23 @@ struct baro_data{
 
 
 //(SPI_TypeDef *)
-void spi_send8(SPI_TypeDef* spi, uint8_t* data)
+void spi_send8(SPI_TypeDef* spi, uint8_t* data, HAL_StatusTypeDef* in)
 {
 	SPI_HandleTypeDef hspi = { .Instance = spi };
 	//HAL_StatusTypeDef HAL_SPI_Trnsmit(SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t Size, uint32_t Timeout)
 	//while (!(spi->SR & SPI_SR_TXE ))
 	//*(__IO uint8_t *)spi = data;
-	HAL_SPI_Transmit(&hspi, data, 1, 0xFFFFFFFF);
+	*in = HAL_SPI_Transmit(&hspi, data, 1, 0xFFFFFFFF);
 }
 
-uint8_t spi_read8(SPI_TypeDef* spi)
+uint8_t spi_read8(SPI_TypeDef* spi, HAL_StatusTypeDef* in)
 {
 	SPI_HandleTypeDef hspi = { .Instance = spi };
-	uint8_t data;
+	uint8_t data = -5;
 	//HAL_StatusTypeDef HAL_SPI_Receive(SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t Size, uint32_t Timeout)
 	//while (!(spi->SR & SPI_SR_RXNE))
 	//return *(__IO uint8_t *)spi;
-    HAL_SPI_Receive(&hspi, &data, 1, 0xFFFFFFFF);
+	*in = HAL_SPI_Receive(&hspi, &data, 1, 0xFFFFFFFF);
 	return data;
 }
 
@@ -121,14 +121,14 @@ uint8_t spi_read8(SPI_TypeDef* spi)
 *Description: Reads data from the barometer
 *and returns it as a struct baro_data.
 ******************************************/
-struct baro_data read_baro(){
+struct baro_data read_baro(HAL_StatusTypeDef* in1, HAL_StatusTypeDef* in2, HAL_StatusTypeDef* in3, HAL_StatusTypeDef* in4){
 	struct baro_data temp;
 	//read ADC
-	spi_send8(SPI3, 0x00);
+	spi_send8(SPI3, 0x00, in1);
 	//read and save return
-	temp.p = spi_read8(SPI3);
-	temp.pt = spi_read8(SPI3);
-	temp.t = spi_read8(SPI3);
+	temp.p = spi_read8(SPI3, in2);
+	temp.pt = spi_read8(SPI3, in3);
+	temp.t = spi_read8(SPI3, in4);
 	//if any data is bad clear the whole struct
 /*
 	if(temp.p == 0x00){
@@ -153,12 +153,117 @@ struct baro_data read_baro(){
 	return temp;
 }
 
+
+/****************************************
+*Title: get_mpu_byte
+*Description: gets next data byte from MPU
+****************************************/
+
+uint8_t get_mpu_byte(uint8_t reg){
+    uint8_t data = -5;
+//    uint8_t addr = 0x69;
+
+//HAL_StatusTypeDef HAL_I2C_Master_Transmit(I2C_HandleTypeDef *hi2c, uint16_t DevAddress, uint8_t *pData, uint16_t Size, uint32_t Timeout)
+
+	HAL_I2C_Master_Transmit(I2C2, 0x69, &reg, 1, 0xFFFFFFFF);
+	HAL_I2C_Master_Receive(I2C2, 0x69, &data, 1, 0xFFFFFFFF);
+
+/*
+    I2C2->CR2 &= ~(I2C_CR2_RD_WRN)
+    I2C2->CR2 &= ~(0x69 << 16); //address of the MPU
+    I2C2->CR2 |= I2C_CR2_START | (1 << 16); 
+    while(I2C2->CR2 & I2C_CR2_START);
+
+    I2C2->TXDR = reg; // write address of register
+    while (!(I2C2->ISR & I2C_ISR_TXE));
+
+    I2C2->CR2 |= I2C_CR2_RD_WRN;
+    I2C2->CR2 |= I2C_CR2_START | (1 << 16);
+    while(I2C2->CR2 & I2C_CR2_START);
+    while (!(I2C2->ISR & I2C_ISR_RXNE));
+    data = I2C2->RXDR;
+    I2C2->CR2 |= I2C_CR2_STOP;
+    while(I2C2->CR2 & I2C_CR2_STOP);
+*/ 
+    return data;
+}
+
+/****************************************
+*Title: get_mpu_data
+*Description: gets data from MPU byte
+****************************************/
+
+void get_mpu_data(struct mpudata* out){
+	uint8_t temph, templ;
+	uint8_t* pos;
+	//get accel x high
+	temph = get_mpu_byte(0x3B);
+	//get accel x low
+	templ = get_mpu_byte(0x3C);
+	//put in to struct
+	pos = &(out->accelx)
+	*pos = tmph;
+	pos++;
+	*pos = tmpl;
+	pos++;
+	//get accel y high	
+	temph = get_mpu_byte(0x3D);
+	//get accel y low
+	templ = get_mpu_byte(0x3E);
+	//put in to struct
+	*pos = temph;
+	pos++;
+	*pos = tmpl;
+	pos++;
+	//get accel z high
+	temph = get_mpu_byte(0x3F);
+	//get accel z low
+	templ = get_mpu_byte(0x40);
+	//put in to struct
+	*pos = temph;
+	pos++;
+	*pos = templ;
+	pos++;
+	//get gyro x high
+	temph = get_mpu_byte(0x3F);
+	//get gyro x low
+	templ = get_mpu_byte(0x3F);
+	//put in to struct
+	*pos = temph;
+	pos++;
+	*pos = templ;
+	pos++;
+	//get gyro y high
+	temph = get_mpu_byte(0x3F);
+	//get gyro y low
+	templ = get_mpu_byte(0x3F);
+	//put in to struct
+	*pos = temph;
+	pos++;
+	*pos = templ;
+	pos++;
+	//get gyro z high
+	temph = get_mpu_byte(0x3F);
+	//get gyro z low
+	templ = get_mpu_byte(0x3F);
+	//put in to struct
+	*pos = temph;
+	pos++;
+	*pos = templ;
+}
+
+
 int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-	 char Test[128]; //buffer
+	char Test[128]; //buffer
+	char Test2[128]; //buffer
 	struct baro_data temp; //gets baro data
+	HAL_StatusTypeDef status1;
+	HAL_StatusTypeDef status2;
+	HAL_StatusTypeDef status3;
+	HAL_StatusTypeDef status4;
   /* USER CODE END 1 */
 
   /* MCU Configuration----------------------------------------------------------*/
@@ -202,8 +307,10 @@ int main(void)
   {
 
 	  memset(Test, '\0',128); //sizes buffer
-	  temp = read_baro(); //gets baro data
+	  memset(Test2, '\0',128); //sizes buffer
+	  temp = read_baro(&status1, &status2, &status3, &status4); //gets baro data
 	 // sprintf(Test, "%d|%d|%d", temp.p, temp.pt, temp.t); //fills the buffer struct to char pointer
+	  sprintf(Test2, "TELEM: BARO status: %d | %d | %d | %d EOT!",  status1, status2, status3, status4); //fills the buffer struct to char pointer
 	  sprintf(Test, "TELEM: BARO: %d | %d | %d EOT!",  temp.p, temp.pt, temp.t); //fills the buffer struct to char pointer
 
 
