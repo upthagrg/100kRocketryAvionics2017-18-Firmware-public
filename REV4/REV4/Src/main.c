@@ -72,6 +72,10 @@ struct raw{
 	uint16_t time;
 	char delim;
 };
+int uart_it = 0;
+char uart_msg[128];
+struct gps_data packet_gps_data;
+
 
 void spi_send8(SPI_TypeDef* spi, uint8_t data)
 {
@@ -143,7 +147,8 @@ void USART4_IRQHandler(void){//called when interrupt recieved
                 uart_it++; //increment iterator 
                 if((int)uart_msg[uart_it-1] == 13){ //if carriage return was the recieved charater aka end of GPS data 
                         uart_it = 0; //reset iterator
-                        process_gps(); //process the string
+                        //process_gps(); //process the string
+			packet_gps_data = parser(uart_msg);
                 }
 
         }
@@ -429,6 +434,12 @@ int main(void)
 	MX_SPI2_Init();
 	MX_SPI3_Init();
 	power_led_on(); //must happen after MX_GPIO_Init()
+
+    //configure uart 4 interrupt
+    /* Enable RXNE interrupt */
+    USART_ITConfig(USART4, USART_IT_RXNE, ENABLE);
+    /* Enable USART1 global interrupt */
+    NVIC_EnableIRQ(USART4_IRQn);
 	
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
