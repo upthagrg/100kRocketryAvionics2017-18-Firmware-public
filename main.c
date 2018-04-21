@@ -314,6 +314,7 @@ int main(void)
 	  sprintf(Test, "TELEM: BARO: %d | %d | %d EOT!",  temp.p, temp.pt, temp.t); //fills the buffer struct to char pointer
 
 
+	  HAL_UART_Transmit(&huart5, (unsigned char*)Test2, sizeof(Test2), HAL_MAX_DELAY); //testing UART5 TX sends data
 	  HAL_UART_Transmit(&huart5, (unsigned char*)Test, sizeof(Test), HAL_MAX_DELAY); //testing UART5 TX sends data
 	     HAL_Delay(500);
 	     GPIOC->ODR = 0x0000FFFF;
