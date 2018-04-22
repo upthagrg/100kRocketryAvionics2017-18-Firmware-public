@@ -441,27 +441,21 @@ int main(void)
   while (1)
   {
   	//start_time = get_time();
-  	//while(get_time() - start_time < timeout){
+  	//while(get_time() - start_time < timeout && NOT all sensors have data in packet){
 		/*If baro data is available && packet does not have data yet{
 		retrieve data from baro
 		put data into raw packet
-		continue
 		}*/
 
 		/*If MPU data is available && packet does not have data yet{
 		retrieve data from MPU
 		put data into raw packet
-		continue
 		}*/
 
 		/*If GPS data is available && packet does not have data yet{
 		retrieve data from GPS
 		put data into raw packet
-		continue
 		}*/
-		
-		/*If all sensors have data in packet{
-		break from while loop
 		}
 	}*/
 		
@@ -477,9 +471,9 @@ int main(void)
 			put dummy data in GPS struct
 		}*/
 		
+		//convert get_time() to milliseconds and append value onto packet
 		//write raw packet to EEPROM
 		//compile data into organized packet
-		//convert get_time() to milliseconds and append value onto packet
 		//send packet to TXRX
 	}
   power_led_off();
