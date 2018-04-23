@@ -146,7 +146,7 @@ struct baro_data read_baro(){
 
 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_SET); //Pull high
 	cmd = 0x48; // conversion command
-	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_RESET); //pull low to start rest
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_RESET); //pull low to start reset
 	spi_send8(SPI3, &cmd, &baro_convert);
 	HAL_Delay(12); //allow enough time for conversion
 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_SET); //pull high to end reset
