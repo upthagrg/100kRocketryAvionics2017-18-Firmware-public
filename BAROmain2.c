@@ -152,7 +152,8 @@ struct baro_data read_baro(){
 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_SET); //pull high to end reset
 	cmd = 0x00; //read adc command
 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_RESET); //pull low to start command
-	spi_send8(SPI3, &cmd, &baro_write1);
+	baro_write1 = 0; //set as OK
+	//spi_send8(SPI3, &cmd, &baro_write1); //mayneed or not, depends on example seen
 	spi_send8(SPI3, &cmd, &baro_write2);
 	a.p1 = spi_read8(SPI3, &baro_read1);
 	spi_send8(SPI3, &cmd, &baro_write3);
