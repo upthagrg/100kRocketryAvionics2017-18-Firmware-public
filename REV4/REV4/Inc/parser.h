@@ -2,7 +2,7 @@
 #define parser_H_
 
 struct GPSObj{
-    float _lat, _long;
+    float _lat, _long, _alt;
 };
 
 struct GPSObj parser(char *data);
