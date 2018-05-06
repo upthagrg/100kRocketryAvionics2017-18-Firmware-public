@@ -3,37 +3,38 @@
 #include <SD.h>
 #include <SPI.h>
 
-SoftwareSerial gpsSerial(7,8);
+//pin 7 = RX3
+//pin 8 = TX3
+//GPS expects
+//Force on pin 5 - pulled low by default
+//RTS pin 6 - ready to send
+//CTS pin 20 - clear to send
+//GPIO 12 pin 2 - sleep function 
+
+//SoftwareSerial gpsSerial(7,8);  //FOR WHAT
 const int gpsSentenceS = 80;
 char sentence[gpsSentenceS];
-const int chipSelect = BUILTIN_SDCARD;
-int writeIdx;
-int writeCounter;
-File dataFile;
-
-uint8_t arr[4];
-char Test[128]; //buffer
 char GPSTEST[128];
 char CLEAR[128]; //clear buffer
 
 void setup() {
 
-  Serial.begin(9600); //WHAT THE FUCK IS THIS CONNECTED TO
-  Serial1.begin(9600); //WHAT THE BITCHPASTE IS THIS FOR
-  Serial3.begin(9600); //uart3 pins 7 and 8 to GPS
-  SD.begin(chipSelect); //HOW THE FUCK DO YOU INTERFACE WITH THIS CHICKENTIDDY
-  dataFile = SD.open("datalog.txt", FILE_WRITE);
-
-//Force on pin 5 - pulled low by default
-//RTS pin 6 - ready to send
-//CTS pin 20 - clear to send
-//GPIO 12 pin 2 - sleep function
-//write RC1740 radio config pin high to prevent entering CONFIG mode
-//delay so user can turn on radio
-//wait one minute for gps to cold start
+  Serial.begin(9600); //USB serial
+  Serial3.begin(9600,SERIAL_8N1); //uart3 pins 7 and 8 to GPS
+  
 //sprintf(GPSTEST, "$PMTK225,0");//,0,0,1000,0,1000"); //normal operation command
+  delay(5000);
+  Serial3.write("$PMTK225,0"); //normal operation command
+  Serial.write("wait over"); //normal operation command to serial monitor to view
 }
 
+void loop(){
+  if(Serial3.available()){ //UART3
+    int gps = Serial3.read();
+    Serial.println(gps);
+  }
+}
+/*
 void loop() {
   digitalWrite(13, HIGH);
   static int count =0;
@@ -51,7 +52,7 @@ void loop() {
   
   countPrev=0;
 
-  if(Serial3.available())
+  if(Serial3.available()) //UART3
    {
       char gpsS = Serial3.read();
       if(gpsS != '\n' && count<gpsSentenceS)
@@ -175,3 +176,5 @@ void getField(char* buffer, int index)
   }
   buffer[fieldPos] = '\0';
 } 
+
+*/
