@@ -1,180 +1,158 @@
 #include <SoftwareSerial.h>
-//#include <Wire.h>
 #include <SD.h>
 #include <SPI.h>
 
-//pin 7 = RX3
-//pin 8 = TX3
-//GPS expects
-//Force on pin 5 - pulled low by default
-//RTS pin 6 - ready to send
-//CTS pin 20 - clear to send
-//GPIO 12 pin 2 - sleep function 
+File flightData;
 
-//SoftwareSerial gpsSerial(7,8);  //FOR WHAT
-const int gpsSentenceS = 80;
-char sentence[gpsSentenceS];
-char GPSTEST[128];
-char CLEAR[128]; //clear buffer
+//Information on protocols used:
+//http://www.gpsinformation.org/dale/nmea.htm
+const int gpsSentence = 80;
+char gpsType[6];                //Holds type of GPS data received
+char gpsData[gpsSentence];      //Holds content of GPS data received
 
 void setup() {
-
   Serial.begin(9600); //USB serial
+  while (!Serial) {
+    ; // endless loop to wait for the damn thing to connect. REMOVE FROM FINAL IMPLEMENTATION
+  }
+
+
+  Serial.print("Initializing SD card...");
+
+  if (!SD.begin()) {
+    Serial.println("SD card initialization failed.");
+    //while (1); //endless loop in case this crap fails. REMOVE FROM FINAL IMPLEMENTATION
+  }
+  Serial.println("SD card initialization done.");
+
+  // create and open new file, apply read/write permissions, and close it.
+  Serial.println("Creating data.txt file...");
+  flightData = SD.open("data.txt", FILE_WRITE);
+  flightData.close();
+
+  // Check to see if the file exists:
+  if (SD.exists("data.txt")) {
+    Serial.println("data.txt exists.");
+  }
+  else {
+    Serial.println("data.txt doesn't exist.");
+  }
+
+  //GPS initialization
   Serial3.begin(9600,SERIAL_8N1); //uart3 pins 7 and 8 to GPS
-  
-//sprintf(GPSTEST, "$PMTK225,0");//,0,0,1000,0,1000"); //normal operation command
   delay(5000);
-  Serial3.write("$PMTK225,0"); //normal operation command
-  Serial.write("wait over"); //normal operation command to serial monitor to view
+  Serial3.write("$PMTK103,0"); //cold start command
+  delay(40000); //wait 40 seconds for cold start to finish
+  Serial3.write("$PMTK353,1,0,0,0,0"); //GPS only mode - CHECK IF THIS WORKS
+  Serial.write("GPS initialization complete."); //Show serial monitor that dinner's ready
 }
 
-void loop(){
-  if(Serial3.available()){ //UART3
-    int gps = Serial3.read();
-    Serial.println(gps);
-  }
-}
-/*
+//REAL SHIT
 void loop() {
-  digitalWrite(13, HIGH);
-  static int count =0;
-  char index1array[7];
-  int commaCounter = 0;
-  char comma;
-  int comma3Idx = 0;
-  int comma6Idx = 0;
-  char latDirection;
-  char longDirection;
-  bool clearToSend = false;
-  char data[30];
-  int countPrev=0;
-  int numWrites = 100;
   
-  countPrev=0;
+  int count = 0;
+  char gps_output;
 
-  if(Serial3.available()) //UART3
-   {
-      char gpsS = Serial3.read();
-      if(gpsS != '\n' && count<gpsSentenceS)
-      {
-        sentence[count] = gpsS;
-        count++;    
-      }
-      else
-      {
-        sentence[count] = '\0';
-        countPrev=count;
-        count = 0;
-        Serial.println(sentence);
-        if(dataFile)
-        {
-          if(writeCounter == 10)
-          {
-            Serial.println("writing to file");
-            dataFile.println(sentence);
-            writeIdx++;
-            writeCounter = 0;
-            
-            Serial.println(writeIdx);
-            dataFile.close();
-            dataFile = SD.open("datalog.txt", FILE_WRITE);
-          }
-          else
-          {
-            writeCounter++;
-            Serial.println("writing to file");
-            dataFile.println(sentence);
-          }
-        }
-        for(int i=0; i<5; i++)
-        {
-          index1array[i] = sentence[i];
-        }
-        if( (index1array[0] == '$') && (index1array[3] == 'R'))
-        {
-
-          for(int k=0; k<countPrev; k++)
-          {
-            if(sentence[k] == ',')
-            {
-              commaCounter++;
-            }
-            if(commaCounter == 2)
-            {
-              comma3Idx = k;
-              
-            }
-            if(commaCounter == 6)
-            {
-              comma6Idx = k; 
-              
-             }
-
-          }
-          Serial.println(comma3Idx);
-          Serial.println(comma6Idx);
-
-            for(int q= (comma3Idx+1); q < (comma6Idx+2); q++)
-            {
-              data[q-(comma3Idx+1)] = sentence[q];
-            }
-            //data[comma6Idx+2] = '\0';
-
-          Serial.println(data);
-          Serial1.println(data);
-          }
-      }
-   }
-  
-}
-
-void displayGPS()
-{
-  char field[20];
-  Serial.print(" ");
-  getField(field,0);//checks to see what data line is being received
-  if(strcmp(field, "$GPRMC") == 0)
-  {
-    Serial.print("Lat: ");
-    getField(field, 3); //latitude is the third part of the data sentence, so it is stored in field
-    Serial.print(field);
-    getField(field, 4); //N/S
-    Serial.print(field);
+  //If UART3 got things to say we listen politely
+  if(Serial3.available()){
+    gps_output = Serial3.read();
+    //guarantee first read character is a '$' delimiter:
+    while(gps_output != '$'){
+      gps_output = Serial3.read();
+    }
+    count = 1; //Indicate that the '$' got found. WE GOT CASH.
     
-    Serial.print(" Long: ");
-    getField(field, 5);
-    Serial.print(field);
-    getField(field, 6);
-    Serial.print(field);
-  }
-  if(strcmp(field, "$GPGGA") == 0)
-  {
-    Serial.print(" Alt: ");
-    getField(field, 9);
-    Serial.println(field);
-  } 
+    //Read in and store the type of transmission protocol
+    if(gps_output == '$'){
+      for(count = 0; count <= 5; count++){
+        gps_output = Serial3.read();
+        gpsType[count] = gps_output;
+      }
+    }
+      count = 0;
+
+    //Get GPS data based on data type
+
+    //GPMRC
+    if(strcmp(gpsType, "GPRMC,")){
+      while(gps_output != '\n'){
+          gps_output = Serial3.read();
+          gpsData[count] = gps_output;
+          count++;
+      }
+    }
+    //GPGGA
+    else if(strcmp(gpsType, "GPGGA,")){
+      while(gps_output != '\n'){
+          gps_output = Serial3.read();
+          gpsData[count] = gps_output;
+          count++;
+      }
+    }
+    //These are other formats we won't likely be using
+    //I HAVE NOT WRITTEN DECODING CODE FOR THESE FORMATS,
+    //ONLY GPMRC AND GPGGA!!!
+    //GPGSA
+    /*else if(strcmp(gpsType, "GPGSA,")){
+      while(gps_output != '\n'){
+          gps_output = Serial3.read();
+          gpsData[count] = gps_output;
+          count++;
+      }
+    }
+    //GPGSV
+    else if(strcmp(gpsType, "GPGSV,")){
+      while(gps_output != '\n'){
+          gps_output = Serial3.read();
+          gpsData[count] = gps_output;
+          count++;
+      }
+    }
+    //GPBOD
+    else if(strcmp(gpsType, "GPBOD,")){
+      while(gps_output != '\n'){
+          gps_output = Serial3.read();
+          gpsData[count] = gps_output;
+          count++;
+      }
+    }
+    //GPRMB
+    else if(strcmp(gpsType, "GPRMB,")){
+      while(gps_output != '\n'){
+          gps_output = Serial3.read();
+          gpsData[count] = gps_output;
+          count++;
+      }
+    }
+    //GPGLL
+    else if(strcmp(gpsType, "GPGLL,")){
+      while(gps_output != '\n'){
+          gps_output = Serial3.read();
+          gpsData[count] = gps_output;
+          count++;
+      }
+    }*/
+    //Shit data, iterate through the shit until we get to not-shit data
+    else {
+      while(gps_output != '\n'){
+          gps_output = Serial3.read();
+      }
+    }
+
+      write_to_SD(gpsType, gpsData);
+      count = 0; //set count back to 0
+   }  
 }
 
-void getField(char* buffer, int index)
-{
-  int sentencePos = 0;
-  int fieldPos = 0;
-  int commaCount = 0;
-  while (sentencePos < gpsSentenceS)
-  {
-    if (sentence[sentencePos] == ',')
-    {
-      commaCount ++;
-      sentencePos ++;
-    }
-    if (commaCount == index)
-    {
-      buffer[fieldPos] = sentence[sentencePos];
-      fieldPos ++;
-    }
-    sentencePos ++;
+//WRITE TO SD CARD
+void write_to_SD(char gpsType[], char gpsData[]){
+  if(flightData){
+    Serial.write("Writing data to SD card...");
+    flightData = SD.open("data.txt", FILE_WRITE);
+    flightData.println(gpsType);
+    flightData.println(gpsData);
+    flightData.println('\n');
+    flightData.close();
+    Serial.write("Done writing to SD card!");
   }
-  buffer[fieldPos] = '\0';
-} 
-
-*/
+}

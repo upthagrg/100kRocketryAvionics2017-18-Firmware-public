@@ -1,0 +1,1 @@
+This program extracts data from the data.txt file, converts it to legible format, and displays it to Serial.
