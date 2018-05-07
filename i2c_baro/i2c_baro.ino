@@ -1,3 +1,5 @@
+//Uncomment anything commented out, and comment out anything that ISNT commetned to swap between files. EXCEPT do not comment out the lines in setup(), always leave those uncommented.
+
 #include <Wire.h>
 //#include <MS5xxx.h>
 
