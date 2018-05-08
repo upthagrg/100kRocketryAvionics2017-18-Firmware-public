@@ -28,7 +28,7 @@ int count = 0; //keep track of amount of characters in dataString[]
 int commaCount = 0; //keep track of comma delimiters
 int i = 0;
 
-  flightData = SD.open("data.txt"); //read permissions only
+  flightData = SD.open("data.txt"); //read permissions only //READS THIS FILE
   if (flightData) {
     Serial.println("Beginning Transmission: \n");
     while (flightData.available()) {
@@ -41,7 +41,7 @@ int i = 0;
           count = 0;
         }
         if(gpsType != '\0'){ //if gpsType isn't null (meaning it's gone through the for loop above...)
-          if(strcmp(gpsType, "GPRMC,")){ //Check to see if gpsType[] is GPMRC
+          if(strcmp(gpsType, "$GNRMC,")){ //Check to see if gpsType[] is GPMRC
             //print out the protocol to serial
             Serial.println("Protocol: " + gpsType[0] + gpsType[1] + gpsType[2] + gpsType[3] + gpsType[4] + gpsType[5]);
             while(fileOutput != '\n'){ //while not new line (meaning still on the same protocol...)
@@ -94,7 +94,7 @@ int i = 0;
             }
             commaCount = 0; //If you run into a newline, reset commaCount to zero
           }
-          else if(strcmp(gpsType, "GPGGA,")){
+          else if(strcmp(gpsType, "$GNGGA,")){
             Serial.println("Protocol: " + gpsType[0] + gpsType[1] + gpsType[2] + gpsType[3] + gpsType[4] + gpsType[5]);
             while(fileOutput != '\n'){
                 fileOutput = flightData.read();
