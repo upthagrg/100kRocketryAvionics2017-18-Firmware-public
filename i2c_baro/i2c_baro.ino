@@ -1,24 +1,43 @@
-//Uncomment anything commented out, and comment out anything that ISNT commetned to swap between files. EXCEPT do not comment out the lines in setup(), always leave those uncommented.
+//Uncomment anything commented out, and comment out anything that ISNT commetned to swap between files. EXCEPT do not 
+//comment out the lines in setup(), always leave those uncommented.
 
-#include <Wire.h>
-//#include <MS5xxx.h>
+//#include <Wire.h>
+#include <MS5xxx.h>
 
-//MS5xxx sensor(&Wire);
+MS5xxx sensor(&Wire);
+double number = 0;
 
 void setup() 
 {
-  Wire.begin();
-  Serial.begin(9600);
-  /*if(sensor.connect()>0) {
-    Serial.println("Error connecting...");
-    delay(500);
-    setup();
-  }*/
+  Wire.begin(); //slave address, might not need it b/c this is master
+  Serial.begin(9600); //debug
+  Wire.beginTransmission(0xEE); //device address
+  Wire.write(0x1E); //reset command
+  delay(15); //delay
+  Wire.write(0x40); //conversion command
+  delay(15);
+  Wire.endTransmission();
+  
+  
+  //if(sensor.connect()>0) {
+  //  Serial.println("Error connecting...");
+  //  delay(500);
+  //  setup();
+ // }
 }
 
 void loop() 
 {
-  byte firstbyte=0;
+  Wire.beginTransmission(0xEE);
+  Wire.write(0x00); //read adc command
+  Wire.endTransmission();
+  Serial.println("I'm here");
+  while(1){
+    number = Wire.read();
+    Serial.println(number);
+  }
+  
+  /*byte firstbyte=0;
   byte secondbyte=0;
   byte thirdbyte=0;
   int numbyte=1;
@@ -58,6 +77,7 @@ void loop()
   Serial.println(thirdbyte, DEC);
   
   delay(2000);
+  */
 }
 /*
 void loop() {

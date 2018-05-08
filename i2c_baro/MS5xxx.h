@@ -5,8 +5,8 @@
 #include <Wire.h>
 
 // typical I2C-Address of chip
-#define I2C_MS5607 0x76
-#define I2C_MS5611 0x77
+#define I2C_MS5607 0x76;//0b11101x0//0x76
+//#define I2C_MS5611 //0x77
 
 // I2C commands of chip
 #define MS5xxx_CMD_RESET	0x1E    // perform reset

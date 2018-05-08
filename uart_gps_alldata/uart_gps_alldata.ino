@@ -49,7 +49,8 @@ void loop() {
   //While data is available
   if(Serial3.available()){
     if(gps_output == '\n'){
-      write_to_SD(gpsData);
+      write_to_SD(gpsData); //at end of line, write out that line to sd card
+      Serial.println(gpsData); //debug
       count = 0;
       gps_output = Serial3.read();
     }
@@ -57,8 +58,9 @@ void loop() {
     else {
       gps_output = Serial3.read();
       gpsData[count] = gps_output;
+      Serial.print(gps_output); //debug
     }
-    count++
+    count++; //might break here
   }
 }
 
