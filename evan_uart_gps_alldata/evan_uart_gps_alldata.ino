@@ -53,9 +53,7 @@ void loop() {
       gpsData[count] = gps_output;
       Serial.println("Writing data to SD card...");
       Serial.println(count);
-      for(i = 0; i <= count; i++){
-        write_to_SD(gpsData[i]); //at end of line, write out that line to sd card
-      }
+      write_to_SD(gpsData); //at end of line, write out that line to sd card
       Serial.println("Done writing to SD card!");
       count = 0;
       memset(gpsData, '\0', sizeof(char)*128);
@@ -76,10 +74,18 @@ void loop() {
         Serial.println("else if, if ordinary");
       }
       else {
-        gpsData[count] = gps_output;
-        count++;
-        Serial.println(count);
-        Serial.println("else if, else ordinary");
+        if(count < 128){
+          gpsData[count] = gps_output;
+          count++;
+          Serial.println(count);
+          Serial.println("else if, else, if ordinary");
+        }
+        else {
+          count = 0;
+          memset(gpsData, '\0', sizeof(char)*128);
+          Serial.println(count);
+          Serial.println("else if, else, else ordinary");
+        }
       }
     }
     else { //gps_output != '\n' && count == 0 //ordinary reading at start of line
@@ -101,7 +107,7 @@ void loop() {
 }
 
 //WRITE TO SD CARD
-void write_to_SD(char gpsData){
+void write_to_SD(char gpsData[]){
   flightData = SD.open("data.txt", FILE_WRITE);
   if(flightData){
     //Serial.println("Writing data to SD card...");
