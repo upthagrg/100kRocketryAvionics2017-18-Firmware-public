@@ -1,0 +1,1542 @@
+
+<!-- saved from url=(0043)http://www.gpsinformation.org/dale/nmea.htm -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+   <meta name="author" content="Dale DePriest">
+   <meta name="keywords" content="gps, NMEA">
+   <meta name="description" content="Explanation of NMEA sentences as used 
+            in GPS receivers.">
+   
+   <title>NMEA data
+   </title>
+</head>
+<body bgcolor="#F0F0EE">
+
+<h2>NMEA data</h2>
+
+<b>Table of Contents</b>
+<ul>
+<li><a href="http://www.gpsinformation.org/dale/nmea.htm#intro">Introduction</a>
+</li><li><a href="http://www.gpsinformation.org/dale/nmea.htm#hardware">Hardware connection</a>
+</li><li><a href="http://www.gpsinformation.org/dale/nmea.htm#nmea">NMEA sentences</a>
+</li><li><a href="http://www.gpsinformation.org/dale/nmea.htm#position">Decodes of some position sentences</a>
+</li><li><a href="http://www.gpsinformation.org/dale/nmea.htm#nav">Decodes of some navigation sentences</a>
+</li><li><a href="http://www.gpsinformation.org/dale/nmea.htm#other">Decodes of a few other sentences</a>
+</li><li><a href="http://www.gpsinformation.org/dale/nmea.htm#proprietary">Decodes of some proprietary sentences</a>
+</li><li><a href="http://www.gpsinformation.org/dale/nmea.htm#stream">Sample Streams</a>
+</li></ul>
+
+<h3>Disclaimer</h3>
+
+<p>This site is based on personal research and is believed to be
+accurate but there is no guarantee that any of the information is
+correct or suitable for any purpose. I have been told by the NMEA
+folks that my information is old and out of date.  The current version of
+NMEA at the time I wrote this is 3.01 which is not described
+here. This site is for historical information and is not intended to
+be used for any official purpose. For official data please contact the
+<a href="http://www.nmea.org/">NMEA</a> web site. Please see the
+bottom of this article for the sources of this data.
+
+<a name="intro">
+</a></p><h3><a name="intro">Introduction</a></h3>
+
+<p>The National Marine Electronics Association (<a href="http://www.nmea.org/">NMEA</a>) has developed a specification
+that defines the interface between various pieces of marine electronic
+equipment.  The standard permits marine electronics to send
+information to computers and to other marine equipment.  A full copy
+of this standard is available for purchase at their web site.  None of
+the information on this site comes from this standard and I do not
+have a copy. Anyone attempting to design anything to this standard
+should obtain an official copy.
+
+</p><p>GPS receiver communication is defined within this specification.
+Most computer programs that provide real time position information
+understand and expect data to be in NMEA format. This data includes
+the complete PVT (position, velocity, time) solution computed by the
+GPS receiver. The idea of NMEA is to send a line of data called a
+sentence that is totally self contained and independent from other
+sentences.  There are standard sentences for each device category and
+there is also the ability to define proprietary sentences for use by
+the individual company.  All of the standard sentences have a two
+letter prefix that defines the device that uses that sentence type.
+(For gps receivers the prefix is GP.) which is followed by a three
+letter sequence that defines the sentence contents.  In addition NMEA
+permits hardware manufactures to define their own proprietary
+sentences for whatever purpose they see fit.  All proprietary
+sentences begin with the letter P and are followed with 3 letters that
+identifies the manufacturer controlling that sentence.  For example a
+Garmin sentence would start with PGRM and Magellan would begin with
+PMGN.
+
+</p><p>Each sentence begins with a '$' and ends with a carriage
+return/line feed sequence and can be no longer than 80 characters of
+visible text (plus the line terminators).  The data is contained within
+this single line with data items separated by commas.  The data itself
+is just ascii text and may extend over multiple sentences in certain
+specialized instances but is normally fully contained in one variable
+length sentence.  The data may vary in the amount of precision
+contained in the message.  For example time might be indicated to
+decimal parts of a second or location may be show with 3 or even 4
+digits after the decimal point.  Programs that read the data should
+only use the commas to determine the field boundaries and not depend
+on column positions. There is a provision for a checksum at the end of
+each sentence which may or may not be checked by the unit that reads
+the data. The checksum field consists of a '*' and two hex digits
+representing an 8 bit exclusive OR of all characters between, but not
+including, the '$' and '*'.  A checksum is required on some sentences.
+
+</p><p>There have been several changes to the standard but for gps use the
+only ones that are likely to be encountered are 1.5 and 2.0 through
+2.3.  These just specify some different sentence configurations which
+may be peculiar to the needs of a particular device thus the gps may
+need to be changed to match the devices being interfaced to.  Some
+gps's provide the ability configure a custom set the sentences while
+other may offer a set of fixed choices.  Many gps receivers simply
+output a fixed set of sentences that cannot be changed by the user.
+The current version of the standard is 3.01. I have no specific
+information on this version, but I am not aware of any GPS products
+that require conformance to this version.
+ 
+<a name="hardware">
+</a></p><h3><a name="hardware">Hardware Connection</a></h3>
+
+<p>The hardware interface for GPS units is designed to meet the NMEA
+requirements.  They are also compatible with most computer serial
+ports using RS232 protocols, however strictly speaking the NMEA
+standard is not RS232. They recommend conformance to EIA-422.  The
+interface speed can be adjusted on some models but the NMEA standard
+is 4800 b/s (bit per second rate) with 8 bits of data, no parity, and
+one stop bit.  All units that support NMEA should support this
+speed. Note that, at a b/s rate of 4800, you can easily send enough
+data to more than fill a full second of time.  For this reason some
+units only send updates every two seconds or may send some data every
+second while reserving other data to be sent less often.  In addition
+some units may send data a couple of seconds old while other units may
+send data that is collected within the second it is sent.  Generally
+time is sent in some field within each second so it is pretty easy to
+figure out what a particular gps is doing.  Some sentences may be sent
+only during a particular action of the receiver such as while
+following a route while other receivers may always send the sentence
+and just null out the values. Other difference will be noted in the
+specific data descriptions defined later in the text.
+
+</p><p>At 4800 b/s you can only send 480 characters in one second. Since
+an NMEA sentence can be as long as 82 characters you can be limited to
+less than 6 different sentences.  The actual limit is determined by the
+specific sentences used, but this shows that it is easy to overrun
+the capabilities if you want rapid sentence response. NMEA is designed
+to run as a process in the background spitting out sentences which are
+then captured as needed by the using program. Some programs cannot do
+this and these programs will sample the data stream, then use the data
+for screen display, and then sample the data again.  Depending on the
+time needed to use the data there can easily be a lag of 4 seconds in
+the responsiveness to changed data. This may be fine in some applications
+but totally unacceptable in others. For example a car traveling at 60 mph
+will travel 88 feet in one second. Several second delays could make the 
+entire system seem unresponsive and could cause you to miss your turn.
+
+</p><p>The NMEA standard has been around for many years (1983) and has
+undergone several revisions.  The protocol has changed and the number
+and types of sentences may be different depending on the
+revision. Most GPS receivers understand the standard which is called: 0183
+version 2.  This standard dictates a transfer rate of 4800 b/s. Some
+receivers also understand older standards.  The oldest standard was
+0180 followed by 0182 which transferred data at 1200 b/s.  An earlier
+version of 0183 called version 1.5 is also understood by some
+receivers.  Some Garmin units and other brands can be set to 9600 for
+NMEA output or even higher but this is only recommended if you have
+determined that 4800 works ok and then you can try to set it
+faster. Setting it to run as fast as you can may improve the
+responsiveness of the program.
+
+</p><p>In order to use the hardware interface you will need a cable.
+Generally the cable is unique to the hardware model so you will need
+an cable made specifically for the brand and model of the unit you
+own. Some of the latest computers no longer include a serial port but
+only a USB port.  Most gps receivers will work with Serial to USB
+adapters and serial ports attached via the pcmcia (pc card)
+adapter. For general NMEA use with a gps receiver you will only need
+two wires in the cable, data out from the gps and ground.  A third
+wire, Data in, will be needed if you expect the receiver to accept
+data on this cable such as to upload waypoints or send DGPS data to
+the receiver.
+
+</p><p>GPS receivers may be used to interface with other NMEA devices
+such as autopilots, fishfinders, or even another gps receivers.  They
+can also listen to Differential Beacon Receivers that can send data using
+the RTCM SC-104 standard.  This data is consistent with the hardware
+requirements for NMEA input data. There are no handshake lines defined
+for NMEA.
+
+<a name="nmea">
+</a></p><h3><a name="nmea">NMEA sentences</a></h3>
+
+<p>NMEA consists of sentences, the first word of which, called a data
+type, defines the interpretation of the rest of the sentence.  Each
+Data type would have its own unique interpretation and is defined in
+the NMEA standard.  The GGA sentence <a href="http://www.gpsinformation.org/dale/nmea.htm#GGA">(shown below)</a>
+shows an example that provides essential fix data.  Other sentences
+may repeat some of the same information but will also supply new data.
+Whatever device or program that reads the data can watch for the data
+sentence that it is interested in and simply ignore other sentences
+that is doesn't care about.  In the NMEA standard there are no
+commands to indicate that the gps should do something different.
+Instead each receiver just sends all of the data and expects much of
+it to be ignored.  Some receivers have commands inside the unit that
+can select a subset of all the sentences or, in some cases, even the
+individual sentences to send. There is no way to indicate anything
+back to the unit as to whether the sentence is being read correctly or
+to request a re-send of some data you didn't get.  Instead the receiving
+unit just checks the checksum and ignores the data if the checksum
+is bad figuring the data will be sent again sometime later.
+
+</p><p>There are many sentences in the NMEA standard for all kinds of devices
+that may be used in a Marine environment.  Some of the ones that have
+applicability to gps receivers are listed below: (all message start with GP.)
+</p><ul>
+<li><a href="http://www.gpsinformation.org/dale/nmea.htm#AAM">AAM</a> - Waypoint Arrival Alarm
+</li><li><a href="http://www.gpsinformation.org/dale/nmea.htm#ALM">ALM</a> - Almanac data
+</li><li>APA - Auto Pilot A sentence
+</li><li><a href="http://www.gpsinformation.org/dale/nmea.htm#APB">APB</a> - Auto Pilot B sentence
+</li><li><a href="http://www.gpsinformation.org/dale/nmea.htm#BOD">BOD</a> - Bearing Origin to Destination
+</li><li><a href="http://www.gpsinformation.org/dale/nmea.htm#BWC">BWC</a> - Bearing using Great Circle route
+</li><li>DTM - Datum being used.
+</li><li><a href="http://www.gpsinformation.org/dale/nmea.htm#GGA">GGA</a> - Fix information
+</li><li><a href="http://www.gpsinformation.org/dale/nmea.htm#GLL">GLL</a> - Lat/Lon data
+</li><li>GRS - GPS Range Residuals
+</li><li><a href="http://www.gpsinformation.org/dale/nmea.htm#GSA">GSA</a> - Overall Satellite data
+</li><li>GST - GPS Pseudorange Noise Statistics
+</li><li><a href="http://www.gpsinformation.org/dale/nmea.htm#GSV">GSV</a> - Detailed Satellite data
+</li><li><a hdt="" -="" heading,="" true="" <li=""></a><a href="http://www.gpsinformation.org/dale/nmea.htm#MSK">MSK</a> - send control for a beacon receiver
+</li><li><a href="http://www.gpsinformation.org/dale/nmea.htm#MSS">MSS</a> - Beacon receiver status information.
+</li><li>RMA - recommended Loran data
+</li><li><a href="http://www.gpsinformation.org/dale/nmea.htm#RMB">RMB</a> - recommended navigation data for gps
+</li><li><a href="http://www.gpsinformation.org/dale/nmea.htm#RMC">RMC</a> - recommended minimum data for gps
+</li><li><a href="http://www.gpsinformation.org/dale/nmea.htm#RTE">RTE</a> - route message
+</li><li>TRF - Transit Fix Data
+</li><li>STN - Multiple Data ID
+</li><li>VBW - dual Ground / Water Spped
+</li><li><a href="http://www.gpsinformation.org/dale/nmea.htm#VTG">VTG</a> - Vector track an Speed over the Ground
+</li><li>WCV - Waypoint closure velocity (Velocity Made Good)
+</li><li><a href="http://www.gpsinformation.org/dale/nmea.htm#WPL">WPL</a> - Waypoint Location information
+</li><li>XTC - cross track error
+</li><li><a href="http://www.gpsinformation.org/dale/nmea.htm#XTE">XTE</a> - measured cross track error
+</li><li>ZTG - Zulu (UTC) time and time to go (to destination)
+</li><li><a href="http://www.gpsinformation.org/dale/nmea.htm#ZDA">ZDA</a> - Date and Time
+</li></ul>
+
+<p>Some gps receivers with special capabilities output these 
+special messages.
+</p><ul>
+<li><a href="http://www.gpsinformation.org/dale/nmea.htm#HCHDG">HCHDG</a> - Compass output
+</li><li><a href="http://www.gpsinformation.org/dale/nmea.htm#PSLIB">PSLIB</a> - Remote Control for a DGPS receiver
+</li></ul>
+<p>In addition some GPS receivers can mimic Loran-C receivers by outputing
+the LC prefix in some of their messages so that they can be used to interface
+to equipment that is expecting this prefix instead of the GP one.
+
+<a name="2.3"></a>
+</p><p>The last version 2 iteration of the NMEA standard was 2.3.  It
+added a mode indicator to several sentences which is used to indicate
+the kind of fix the receiver currently has. This indication is part of
+the signal integrity information needed by the FAA.  The value can be
+A=autonomous, D=differential, E=Estimated, N=not valid, S=Simulator.
+Sometimes there can be a null value as well.  Only the A and D values
+will correspond to an Active and reliable Sentence.  This mode
+character has been added to the RMC, RMB, VTG, and GLL, sentences and
+optionally some others including the BWC and XTE sentences.
+
+</p><p>If you are interfacing a GPS unit to another device, including a
+computer program, you need to ensure that the receiving unit is given
+all of the sentences that it needs.  If it needs a sentence that your
+GPS does not send then the interface to that unit is likely to fail.
+Here is a <a href="http://gpsinformation.net/main/nmea3.txt">Link</a> for the
+needs of some typical programs.  The sentences sent by some typical
+receivers include:
+
+</p><p>NMEA 2.0 
+<table border="1"><tbody><tr><td>Name</td>
+<td>Garmin</td><td>Magellan</td><td>Lowrance</td><td>SiRF</td><td>Notes:</td></tr>
+
+<tr><td>GPAPB</td>
+<td>N</td><td>Y</td><td>Y</td><td>N</td><td>Auto Pilot B</td></tr>
+<tr><td>GPBOD</td>
+<td>Y</td><td>N</td><td>N</td><td>N</td><td>bearing, origin to
+destination - earlier G-12's do not transmit this</td></tr>
+
+<tr><td>GPGGA</td>
+<td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>fix data</td></tr>
+
+<tr><td>GPGLL</td> <td>Y</td><td>Y</td><td>Y</td><td>Y</td><td> Lat/Lon data -
+earlier G-12's do not transmit this</td></tr>
+
+<tr><td>GPGSA</td> <td>Y</td><td>Y</td><td>Y</td><td>Y</td><td> overall
+satellite reception data, missing on some Garmin models</td></tr>
+
+<tr><td>GPGSV</td> <td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>detailed
+satellite data, missing on some Garmin models</td></tr>
+
+<tr><td>GPRMB</td> <td>Y</td><td>Y</td><td>Y</td><td>N</td><td> minimum
+recommended data when following a route</td></tr>
+
+<tr><td>GPRMC</td>
+<td>Y</td><td>Y</td><td>Y</td><td>Y</td><td> minimum recommended data</td></tr>
+
+<tr><td>GPRTE</td><td>Y</td><td>U</td><td>U</td> <td>N</td><td> route data, 
+        only when
+        there is an active route. (this is sometimes bidirectional)</td></tr>
+
+<tr><td>GPWPL</td><td>Y</td><td>Y</td><td>U</td><td>N</td> 
+<td> waypoint data, only when there is an active route (this is sometimes 
+     bidirectional)</td></tr>
+
+</tbody></table>
+
+</p><p>NMEA 1.5 - some units do not support version 1.5.  Lowrance units
+provide the ability to customize the NMEA output by sentences so that
+you can develop your own custom sentence structure.
+
+<table border="1">
+<tbody><tr><td>Name</td><td>Garmin</td><td>Magellan</td><td>Notes:</td></tr>
+<tr><td>GPAPA</td><td>N</td><td>Y</td><td>Automatic Pilot A</td></tr>
+<tr><td>GPBOD</td><td>Y</td><td>N</td><td>bearing origin to destination - 
+    earlier G-12's do not send this</td></tr>
+<tr><td>GPBWC</td><td>Y</td><td>Y</td><td>bearing to waypoint using great 
+    circle route.</td></tr>
+<tr><td>GPGLL</td><td>Y</td><td>Y</td><td>lat/lon - earlier G-12's do not 
+    send this</td></tr>
+<tr><td>GPRMC</td><td>Y</td><td>N</td><td>minimum recommend data</td></tr>
+<tr><td>GPRMB</td><td>Y</td><td>N</td><td>minimum recommended data when 
+    following a route</td></tr>
+<tr><td>GPVTG</td><td>Y</td><td>Y</td><td>vector track and speed over 
+    ground</td></tr>
+<tr><td>GPWPL</td><td>Y</td><td>N</td><td>waypoint data (only when active 
+    goto)</td></tr>
+<tr><td>GPXTE</td><td>Y</td><td>Y</td><td>cross track error</td></tr>
+</tbody></table>
+
+</p><p>The NMEA 2.3 output from the Garmin Legend, Vista, and perhaps some 
+others include the BWC, VTG, and XTE sentences.
+
+</p><p>The Trimble Scoutmaster outputs: APA, APB, BWC, GGA, GLL, GSA, GSV,
+RMB, RMC, VTG, WCV, XTE, ZTG.
+
+</p><p>The Motorola Encore outputs: GGA, GLL, GSV, RMC, VTG, ZDA and a 
+proprietary sentence <a href="http://www.gpsinformation.org/dale/nmea.htm#PMOTG">PMOTG</a>.
+
+</p><p>Units based on the SiRF chipset can output: GGA, GLL, GSA, GSV,
+RMC, and VTG.  What is actually output is based on which sentences are
+selected by the user or application program. See <a href="http://www.gpsinformation.org/dale/nmea.htm#sirf">below</a> for more details.  Some implementations have
+enhanced the SiRF capabilities with other sentences as well by
+changing the firmware.  For example, the u-blox receivers add ZDA and
+some proprietary sentences to the above list of sentences. Check your
+documentation for more details.
+
+</p><p>Garmin receivers send the following Proprietary Sentences:
+</p><ul>
+<li><a href="http://www.gpsinformation.org/dale/nmea.htm#PGRME">PGRME</a> (estimated error) - not sent if set to 0183 1.5
+</li><li><a href="http://www.gpsinformation.org/dale/nmea.htm#PGRMM">PGRMM</a> (map datum)
+</li><li><a href="http://www.gpsinformation.org/dale/nmea.htm#PGRMM">PGRMZ</a> (altitude)
+</li><li><a href="http://www.gpsinformation.org/dale/nmea.htm#PSLIB">PSLIB</a> (beacon receiver control)
+</li></ul>
+
+<p>Note that Garmin converts lat/lon coordinates to the datum chosen
+by the user when sending this data.  This is indicated in the
+proprietary sentence PGRMM.  This can help programs that use maps with
+other datums but is not an NMEA standard.  Be sure and set your datum
+to WGS84 on Garmin units when communicating to other NMEA devices.
+
+</p><p>Magellan also converts lat/lon coordinates to the datum chosen on
+the receiver but do not indicate this in a message. Magellan units use
+proprietary sentences for waypoint maintenance and other tasks. They
+use a prefix of PMGN for this data.
+
+</p><p>Most other units always output NMEA messages in the WGS84 datum.  Be
+sure and check the user documentation to be sure.
+
+</p><p>It is possible to just view the information presented on the NMEA
+interface using a simple terminal program.  If the terminal program can
+log the session then you can build a history of the entire session into
+a file.  More sophisticated logging programs can filter the messages to
+only certain sentences or only collect sentences at prescribed intervals.
+Some computer programs that provide real time display and logging actually
+save the log in an ascii format that can be viewed with a text editor or
+used independently from the program that generated it.
+
+<a name="input">
+</a></p><h4><a name="input">NMEA input</a></h4>
+
+<p>Some units also support an NMEA input mode. While not too many
+programs support this mode it does provide a standardized way to
+update or add waypoint and route data.  Note that there is no
+handshaking or commands in NMEA mode so you just send the data in the
+correct sentence and the unit will accept the data and add or
+overwrite the information in memory.  If the data is not in the
+correct format it will simply be ignored. A carriage return/line feed
+sequence is required.  If the waypoint name is the same you will
+overwrite existing data but no warning will be issued.  The sentence
+construction is identical to what the unit downloads so you can, for
+example, capture a <a href="http://www.gpsinformation.org/dale/nmea.htm#WPL">WPL sentence</a> from one unit and
+then send that same sentence to another unit but be careful if the two
+units support waypoint names of different lengths since the receiving
+unit might truncate the name and overwrite a waypoint accidently.  If
+you create a sentence from scratch you should create a correct
+checksum.  Be sure you know and have set you unit to the correct
+datum.  Many units support the input of WPL sentences and a few
+support RTE as well.
+
+</p><p>On NMEA input the receiver stores information based on interpreting
+the sentence itself.  While some receivers accept standard NMEA input this can
+only be used to update a waypoint or similar task and not to send a
+command to the unit.  Proprietary input sentences could be used to
+send commands. Since the Magellan upload and download maintenance
+protocol is based on NMEA sentences they support a modified WPL
+message that adds comments, altitude, and icon data.
+
+</p><p>Some marine units may accept input for alarms such as deep or
+shallow water based on the DPT sentence or MTW to read the water
+temperature. For example the Garmin Map76 supports DPT, MTW
+(temperature), and VHW (speed) input sentences. Other units may use
+NMEA input to provide initialization data via proprietary sentences,
+or to select which NMEA sentences to output.
+
+<a name="position">
+</a></p><h3><a name="position">Decode of selected position sentences</a></h3>
+
+<p>The most important NMEA sentences include the GGA which provides the current
+Fix data, the RMC which provides the minimum gps sentences information, and
+the GSA which provides the Satellite status data.
+
+<a name="GGA">
+</a></p><p><a name="GGA"><b>GGA</b> - essential fix data which provide 3D location and
+accuracy data.</a>
+
+</p><pre> $GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*47
+
+Where:
+     GGA          Global Positioning System Fix Data
+     123519       Fix taken at 12:35:19 UTC
+     4807.038,N   Latitude 48 deg 07.038' N
+     01131.000,E  Longitude 11 deg 31.000' E
+     1            Fix quality: 0 = invalid
+                               1 = GPS fix (SPS)
+                               2 = DGPS fix
+                               3 = PPS fix
+			       4 = Real Time Kinematic
+			       5 = Float RTK
+                               6 = estimated (dead reckoning) (2.3 feature)
+			       7 = Manual input mode
+			       8 = Simulation mode
+     08           Number of satellites being tracked
+     0.9          Horizontal dilution of position
+     545.4,M      Altitude, Meters, above mean sea level
+     46.9,M       Height of geoid (mean sea level) above WGS84
+                      ellipsoid
+     (empty field) time in seconds since last DGPS update
+     (empty field) DGPS station ID number
+     *47          the checksum data, always begins with *
+</pre>
+
+<p>If the height of geoid is missing then the altitude should be
+suspect.  Some non-standard implementations report altitude with
+respect to the ellipsoid rather than geoid altitude.  Some units
+do not report negative altitudes at all.  This is the only
+sentence that reports altitude.
+
+</p><p><a name="GSA">
+<b>GSA</b></a> - GPS DOP and active satellites. This sentence provides
+details on the nature of the fix.  It includes the numbers of the
+satellites being used in the current solution and the DOP. DOP
+(dilution of precision) is an indication of the effect of satellite
+geometry on the accuracy of the fix.  It is a unitless number where
+smaller is better.  For 3D fixes using 4 satellites a 1.0 would be
+considered to be a perfect number, however for overdetermined
+solutions it is possible to see numbers below 1.0.  
+
+</p><p>There are differences in the way the PRN's are presented which can
+effect the ability of some programs to display this data.  For
+example, in the example shown below there are 5 satellites in the
+solution and the null fields are scattered indicating that the almanac
+would show satellites in the null positions that are not being used as
+part of this solution.  Other receivers might output all of the
+satellites used at the beginning of the sentence with the null field
+all stacked up at the end.  This difference accounts for some
+satellite display programs not always being able to display the
+satellites being tracked.  Some units may show all satellites that
+have ephemeris data without regard to their use as part of the solution
+but this is non-standard.
+
+</p><pre>  $GPGSA,A,3,04,05,,09,12,,,24,,,,,2.5,1.3,2.1*39
+
+Where:
+     GSA      Satellite status
+     A        Auto selection of 2D or 3D fix (M = manual) 
+     3        3D fix - values include: 1 = no fix
+                                       2 = 2D fix
+                                       3 = 3D fix
+     04,05... PRNs of satellites used for fix (space for 12) 
+     2.5      PDOP (dilution of precision) 
+     1.3      Horizontal dilution of precision (HDOP) 
+     2.1      Vertical dilution of precision (VDOP)
+     *39      the checksum data, always begins with *
+</pre>
+
+<p><a name="GSV"><b>GSV</b></a> - Satellites in View shows data about
+the satellites that the unit might be able to find based on its
+viewing mask and almanac data.  It also shows current ability to track
+this data.  Note that one GSV sentence only can provide data for up to
+4 satellites and thus there may need to be 3 sentences for the full
+information.  It is reasonable for the GSV sentence to contain
+more satellites than GGA might indicate since GSV may include
+satellites that are not used as part of the solution.  It is not
+a requirment that the GSV sentences all appear in sequence.  To
+avoid overloading the data bandwidth some receivers may place
+the various sentences in totally different samples since each
+sentence identifies which one it is.
+
+</p><p>The field called SNR (Signal to Noise Ratio) in the NMEA standard
+is often referred to as signal strength.  SNR is an indirect but more
+useful value that raw signal strength.  It can range from 0 to 99 and
+has units of dB according to the NMEA standard, but the various
+manufacturers send different ranges of numbers with different starting
+numbers so the values themselves cannot necessarily be used to
+evaluate different units. The range of working values in a given gps
+will usually show a difference of about 25 to 35 between the lowest
+and highest values, however 0 is a special case and may be shown
+on satellites that are in view but not being tracked.
+
+</p><pre>  $GPGSV,2,1,08,01,40,083,46,02,17,308,41,12,07,344,39,14,22,228,45*75
+
+Where:
+      GSV          Satellites in view
+      2            Number of sentences for full data
+      1            sentence 1 of 2
+      08           Number of satellites in view
+
+      01           Satellite PRN number
+      40           Elevation, degrees
+      083          Azimuth, degrees
+      46           SNR - higher is better
+      <repeat>     for up to 4 satellites per sentence
+      *75          the checksum data, always begins with *
+
+</repeat></pre>
+
+<p><a name="RMC"><b>RMC</b></a> - NMEA has its own version of
+essential gps pvt (position, velocity, time) data.  It is called RMC,
+The Recommended Minimum, which will look similar to:
+
+</p><pre>$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*6A
+
+Where:
+     RMC          Recommended Minimum sentence C
+     123519       Fix taken at 12:35:19 UTC
+     A            Status A=active or V=Void.
+     4807.038,N   Latitude 48 deg 07.038' N
+     01131.000,E  Longitude 11 deg 31.000' E
+     022.4        Speed over the ground in knots
+     084.4        Track angle in degrees True
+     230394       Date - 23rd of March 1994
+     003.1,W      Magnetic Variation
+     *6A          The checksum data, always begins with *
+</pre>
+
+<p>Note that, as of the 2.3 release of NMEA, there is a new field in the RMC
+sentence at the end just prior to the checksum.  For more information on
+this field <a href="http://www.gpsinformation.org/dale/nmea.htm#2.3">see here</a>.
+
+</p><p><a name="GLL"><b>GLL</b></a> - Geographic Latitude and Longitude is
+a holdover from Loran data and some old units may not send the time
+and data active information if they are emulating Loran data. If a gps
+is emulating Loran data they may use the LC Loran prefix instead of
+GP.
+
+</p><pre>  $GPGLL,4916.45,N,12311.12,W,225444,A,*1D
+
+Where:
+     GLL          Geographic position, Latitude and Longitude
+     4916.46,N    Latitude 49 deg. 16.45 min. North
+     12311.12,W   Longitude 123 deg. 11.12 min. West
+     225444       Fix taken at 22:54:44 UTC
+     A            Data Active or V (void)
+     *iD          checksum data
+</pre>
+
+<p>Note that, as of the 2.3 release of NMEA, there is a new field in the GLL 
+sentence at the end just prior to the checksum.  For more information on
+this field <a href="http://www.gpsinformation.org/dale/nmea.htm#2.3">see here</a>.
+
+</p><p><a name="VTG"><b>VTG</b></a> - Velocity made good.  The gps
+receiver may use the LC prefix instead of GP if it is emulating
+Loran output.
+
+</p><pre>  $GPVTG,054.7,T,034.4,M,005.5,N,010.2,K*48
+
+where:
+        VTG          Track made good and ground speed
+        054.7,T      True track made good (degrees)
+        034.4,M      Magnetic track made good
+        005.5,N      Ground speed, knots
+        010.2,K      Ground speed, Kilometers per hour
+        *48          Checksum
+</pre>
+
+<p>Note that, as of the 2.3 release of NMEA, there is a new field in the VTG
+sentence at the end just prior to the checksum.  For more information on
+this field <a href="http://www.gpsinformation.org/dale/nmea.htm#2.3">see here</a>.
+
+</p><p>Receivers that don't have a magnetic deviation (variation) table built 
+in will null out the Magnetic track made good.
+
+<a name="nav">
+</a></p><h3><a name="nav">Decode of some Navigation Sentences</a></h3>
+
+<p><a name="WPL"><b>WPL</b></a> - Waypoint Location data provides
+essential waypoint data.  It is output when navigating to indicate
+data about the destination and is sometimes supported on input to
+redefine a waypoint location.  Note that waypoint data as defined in
+the standard does not define altitude, comments, or icon data.  When a
+route is active, this sentence is sent once for each waypoint in the
+route, in sequence.  When all waypoints have been reported, the RTE
+sentence is sent in the next data set. In any group of sentences, only
+one WPL sentence, or an RTE sentence, will be sent.
+
+</p><pre>$GPWPL,4807.038,N,01131.000,E,WPTNME*5C
+
+With an interpretation of:
+
+     WPL         Waypoint Location
+     4807.038,N  Latitude
+     01131.000,E Longitude
+     WPTNME      Waypoint Name
+     *5C         The checksum data, always begins with *
+</pre>
+
+<p><a name="AAM"><b>AAM</b></a> - Waypoint Arrival Alarm is generated
+        by some units to indicate the Status of arrival (entering the
+        arrival circle, or passing the perpendicular of the course
+        line) at the destination waypoint.
+
+</p><pre>  $GPAAM,A,A,0.10,N,WPTNME*32
+
+Where:
+    AAM    Arrival Alarm
+    A      Arrival circle entered
+    A      Perpendicular passed
+    0.10   Circle radius
+    N      Nautical miles
+    WPTNME Waypoint name
+    *32    Checksum data
+</pre>
+
+<p><a name="APB"><b>APB</b></a> - Autopilot format B is sent by some
+gps receivers to allow them to be used to control an autopilot unit.
+This sentence is commonly used by autopilots and contains navigation
+receiver warning flag status, cross-track-error, waypoint arrival
+status, initial bearing from origin waypoint to the destination,
+continuous bearing from present position to destination and
+recommended heading-to-steer to destination waypoint for the active
+navigation leg of the journey.
+
+</p><p>Note: some autopilots, Robertson in particular, misinterpret
+"bearing from origin to destination" as "bearing from present position
+to destination".  This is likely due to the difference between the APB
+sentence and the APA sentence. for the APA sentence this would be the
+correct thing to do for the data in the same field.  APA only differs
+from APB in this one field and APA leaves off the last two fields
+where this distinction is clearly spelled out.  This will result in
+poor performance if the boat is sufficiently off-course that the two
+bearings are different.
+
+</p><pre>  $GPAPB,A,A,0.10,R,N,V,V,011,M,DEST,011,M,011,M*3C 
+
+where:
+    APB     Autopilot format B
+    A       Loran-C blink/SNR warning, general warning 
+    A       Loran-C cycle warning 
+    0.10    cross-track error distance 
+    R       steer Right to correct (or L for Left) 
+    N       cross-track error units - nautical miles (K for kilometers) 
+    V       arrival alarm - circle 
+    V       arrival alarm - perpendicular 
+    011,M   magnetic bearing, origin to destination 
+    DEST    destination waypoint ID 
+    011,M   magnetic bearing, present position to destination 
+    011,M   magnetic heading to steer (bearings could True as 033,T) 
+</pre>
+
+<p><a name="BOD"><b>BOD</b></a> - Bearing - Origin to Destination
+shows the bearing angle of the line, calculated at the origin
+waypoint, extending to the destination waypoint from the origin
+waypoint for the active navigation leg of the journey.
+
+</p><pre>  $GPBOD,045.,T,023.,M,DEST,START*01
+
+where:
+        BOD          Bearing - origin to destination waypoint
+        045.,T       bearing 045 True from "START" to "DEST"
+        023.,M       bearing 023 Magnetic from "START" to "DEST"
+        DEST         destination waypoint ID
+        START        origin waypoint ID
+        *01          checksum
+</pre>
+
+<p><a name="BWC"><b>BWC</b></a> - Bearing &amp; Distance to Waypoint using
+a Great Circle route.  Time (UTC) and distance &amp; bearing to, and
+location of, a specified waypoint from present position along the
+great circle path.
+
+</p><pre>  $GPBWC,225444,4917.24,N,12309.57,W,051.9,T,031.6,M,001.3,N,004*29
+
+where:
+        BWC          Bearing and distance to waypoint - great circle
+        225444       UTC time of fix 22:54:44
+        4917.24,N    Latitude of waypoint
+        12309.57,W   Longitude of waypoint
+        051.9,T      Bearing to waypoint, degrees true
+        031.6,M      Bearing to waypoint, degrees magnetic
+        001.3,N      Distance to waypoint, Nautical miles
+        004          Waypoint ID
+        *29          checksum
+</pre>
+
+<p><a name="RMB"><b>RMB</b></a> - The recommended minimum navigation
+sentence is sent whenever a route or a goto is active.  On some
+systems it is sent all of the time with null data.  The Arrival alarm
+flag is similar to the arrival alarm inside the unit and can be decoded
+to drive an external alarm. Note the use of leading zeros in this
+message to preserve the character spacing. This is done, I believe, 
+because some autopilots may depend on exact character spacing.
+
+</p><pre>  $GPRMB,A,0.66,L,003,004,4917.24,N,12309.57,W,001.3,052.5,000.5,V*20
+
+where:
+           RMB          Recommended minimum navigation information
+           A            Data status A = OK, V = Void (warning)
+           0.66,L       Cross-track error (nautical miles, 9.99 max),
+                                steer Left to correct (or R = right)
+           003          Origin waypoint ID
+           004          Destination waypoint ID
+           4917.24,N    Destination waypoint latitude 49 deg. 17.24 min. N
+           12309.57,W   Destination waypoint longitude 123 deg. 09.57 min. W
+           001.3        Range to destination, nautical miles (999.9 max)
+           052.5        True bearing to destination
+           000.5        Velocity towards destination, knots
+           V            Arrival alarm  A = arrived, V = not arrived
+           *20          checksum
+</pre>
+
+<p><a name="RTE"><b>RTE</b></a> - RTE is sent to indicate the names of
+the waypoints used in an active route.  There are two types of RTE
+sentences. This route sentence can list all of the waypoints in the
+entire route or it can list only those still ahead. Because an NMEA
+sentence is limited to 80 characters there may need to be multiple
+sentences to identify all of the waypoints.  The data about the
+waypoints themselves will be sent in subsequent WPL sentences which
+will be sent in future cycles of the NMEA data.
+
+</p><pre>  $GPRTE,2,1,c,0,W3IWI,DRIVWY,32CEDR,32-29,32BKLD,32-I95,32-US1,BW-32,BW-198*69
+
+Where:
+           RTE          Waypoints in active route
+           2            total number of sentences needed for full data
+           1            this is sentence 1 of 2
+           c            Type c = complete list of waypoints in this route
+                        w = first listed waypoint is start of current leg
+           0            Route identifier
+           W3IWI,...    Waypoint identifiers (names)
+           *69          checksum
+</pre>
+
+<p><a name="XTE"><b>XTE</b></a> - Measured cross track error is a
+small subset of the RMB message for compatibility with some older
+equipment designed to work with Loran. Note that the same limitations
+apply to this message as the ones in the RMB since it is expected to
+be decoded by an autopilot.
+
+</p><pre>  $GPXTE,A,A,0.67,L,N*6F
+
+Where:
+           XTE          Cross track error, measured
+           A            General warning flag V = warning
+                                (Loran-C Blink or SNR warning)
+           A            Not used for GPS (Loran-C cycle lock flag)
+           0.67         cross track error distance
+           L            Steer left to correct error (or R for right)
+           N            Distance units - Nautical miles
+           *6F          checksum
+</pre>
+
+<a name="other">
+<h3>Other sentences that may be useful</h3></a>
+
+<p><a name="ALM"><b>ALM</b></a> - GPS Almanac Data contains GPS week
+number, satellite health and the complete almanac data for one
+satellite. Multiple messages may be transmitted, one for each
+satellite in the GPS constellation, up to maximum of 32 messages.
+Note that these sentences can take a long time to send so they are not
+generally sent automatically by the gps receiver.  (Sorry I don't have
+an exact example of the sentence.) Note that this sentence breaks the
+80 character rule. Also note that this sentence is often accepted as
+input so that you can preload a new almanac in a receiver.
+
+</p><pre>     $GPALM,A.B,C.D,E,F,hh,hhhh,...
+
+Where:
+       ALM   Almanac Data being sent
+       A     Total number of messages
+       B     Message number
+       C     Satellite PRN number
+       D     GPS week number (0-1023) 
+       E     Satellite health (bits 17-24 of message)
+       F     eccentricity
+       hh    t index OA, almanac reference time
+       hhhh  sigma index 1, inclination angle
+       ...   OMEGADOT rate of right ascension
+             SQRA(A) root of semi-major axis
+             Omega, argument of perigee
+             Omega index 0, longitude of ascension node
+             M index 0, mean anomaly
+             a index f0, clock parameter
+             a index f1, clock parameter
+</pre>
+
+<p><a name="HCHDG"><b>HCHDG</b></a> - Compass output is used on Garmin
+etrex summit, vista , and 76S receivers to output the value of the
+internal flux-gate compass.  Only the magnetic heading and magnetic
+variation is shown in the message.
+
+</p><pre>  $HCHDG,101.1,,,7.1,W*3C
+
+where:
+     HCHDG    Magnetic heading, deviation, variation
+     101.1    heading
+     ,,       deviation (no data)
+     7.1,W    variation
+</pre>
+
+<p><a name="ZDA"><b>ZDA</b></a> - Data and Time
+
+</p><pre>  $GPZDA,hhmmss.ss,dd,mm,yyyy,xx,yy*CC<cr><lf>
+  $GPZDA,201530.00,04,07,2002,00,00*60<cr><lf>
+
+where:
+	hhmmss    HrMinSec(UTC)
+        dd,mm,yyy Day,Month,Year
+        xx        local zone hours -13..13
+        yy        local zone minutes 0..59
+        *CC       checksum
+</lf></cr></lf></cr></pre>
+
+<p><a name="MSK"><b>MSK</b></a> - Control for a Beacon Receiver
+
+</p><pre>  $GPMSK,318.0,A,100,M,2*45
+
+where:
+       318.0      Frequency to use
+       A          Frequency mode, A=auto, M=manual
+       100        Beacon bit rate
+       M          Bitrate, A=auto, M=manual
+       2          frequency for MSS message status (null for no status)
+       *45        checksum
+</pre>
+
+<p><a name="MSS"><b>MSS</b></a> - Beacon Receiver Status
+
+</p><pre>  $GPMSS,55,27,318.0,100,*66
+
+where:
+       55         signal strength in dB
+       27         signal to noise ratio in dB
+       318.0      Beacon Frequency in KHz
+       100        Beacon bitrate in bps
+       *66        checksum
+</pre>
+
+<a name="proprietary">
+<h3>Proprietary Sentences</h3></a>
+
+<p>Proprietary sentences can either be output from the gps or used as input
+to control information.  They always start with P which is followed by
+a 3 character manufactures code and additional characters to define
+the sentence type.
+
+</p><h4>Garmin</h4>
+
+<p>The following are Garmin proprietary sentences.  "P" denotes
+proprietary, "GRM" is Garmin's manufacturer code, and "M" or "Z"
+indicates the specific sentence type. Note that the PGRME sentence
+is not set if the output is set to NMEA 1.5 mode.
+
+<a name="PGRME"></a>
+</p><pre>  $PGRME,15.0,M,45.0,M,25.0,M*1C
+
+where:
+     15.0,M       Estimated horizontal position error in meters (HPE)
+     45.0,M       Estimated vertical error (VPE) in meters
+     25.0,M       Overall spherical equivalent position error
+
+<a name="PGRMZ"></a>
+  $PGRMZ,93,f,3*21
+
+where:
+      93,f         Altitude in feet
+      3            Position fix dimensions 2 = user altitude
+                                           3 = GPS altitude
+   This sentence shows in feet, regardless of units shown on the display.
+   Note that for units with an altimeter this will be altitude computed
+   by the internal altimeter.
+
+<a name="PGRMM"></a>
+  $PGRMM,NAD27 Canada*2F
+     Currently active horizontal datum
+</pre>
+
+<a name="PSLIB">PSLIB</a>
+
+<p>Proprietary sentences are used to control a Starlink differential
+   beacon receiver. (Garmin's DBR is Starlink compatible as are many
+   others.)  When the GPS receiver is set to change the DBR frequency
+   or b/s rate, the "J" sentence is replaced (just once) by (for
+   example): $PSLIB,320.0,200*59 to set the DBR to 320 KHz, 200 b/s.
+
+</p><pre>      $PSLIB,,,J*22   Status request
+      $PSLIB,,,K*23   configuration request
+</pre>
+
+<p>These two sentences are normally sent together in each group of
+sentences from the GPS. The three fields are: Frequency, bit Rate,
+Request Type.  The value in the third field may be: J = status request,
+K = configuration request, or null (blank) = tuning message.
+The correct values for frequency range from 283.5-325.0 KHz while the
+bit rate can be set to 0, 25, 50, 100 or 200 bps.
+
+</p><h4>Magellan</h4>
+
+<p>Magellan uses proprietary sentences to do all of their waypoint and
+route maintenance.  They use the MGN prefix for their sentences. This
+use is documented in their interface specification and will not be
+repeated here.  However, they also send proprietary sentences to
+augment the gps data just like Garmin does.  Here is an example of a
+sentence sent by the GPS Companion product:
+
+</p><pre>  $PMGNST,02.12,3,T,534,05.0,+03327,00*40 
+
+where:
+      ST      status information
+      02.12   Version number?
+      3       2D or 3D
+      T       True if we have a fix False otherwise
+      534     numbers change - unknown
+      05.0    time left on the gps battery in hours
+      +03327  numbers change (freq. compensation?)
+      00      PRN number receiving current focus
+      *40    checksum
+</pre>
+
+<p>A tracklog on a Meridian is made up of propretary sentences 
+that look like:
+
+</p><pre>$PMGNTRK,4322.061,N,07948.473,W,00116,M,173949.42,A,,020602*67
+$PMGNTRK,4322.058,N,07948.483,W,00090,M,174202.45,A,,020602*69.
+
+where
+
+      TRK       Tracklog
+      4322.071  Latitude
+      N         North or South
+      07948.473 Longitude
+      W         East or West
+      00116     Altitude
+      M         Meters or Feet
+      173949.42 UTC time
+      A         Active or Void
+      ,,        Track Name
+      020602    date
+      *67       checksum
+</pre>
+
+<h4>Motorola</h4>
+
+The <a name="PMOTG"><b>PMOTG</b></a> is used by Motorola Oncore receivers
+to send a command to the receiver.  This command is used to set the
+output of the sentence to a particular frequency in seconds (or to 0) or
+to switch the output formula to motorola binary, gps, or loran.
+
+<pre>  $PMOTG,xxx,yyyy
+
+where:
+      xxx    the sentence to be controlled
+      yyyy   the time interval (0-9999 seconds)
+
+or $PMOTG,FOR,y
+
+where:
+      y    MPB=0, GPS=1, Loran=2
+</pre>
+
+<h4>Rockwell International</h4>
+
+<p>The Rockwell chipset is used on a number of gps receivers.  It
+outputs some proprietary sentences with the <b>PRWI</b> prefix and
+accepts input from some special sentences similar to the approach used
+by Magellan.  It can also be switched to a separate binary mode using
+a proprietary sentence.  The input sentence most used to initialize
+the unit is $PRWIINIT and one output sentence is $PRWIRID
+
+</p><pre>  $PRWIRID,12,01.83,12/15/97,0003,*42
+
+where:
+     $PRWIRID
+     12         12 channel unit
+     01.83      software version
+     12/15/97   software date
+     0003       software options (HEX value)
+                Bit 0 minimize ROM usage 
+                Bit 1 minimize RAM usage
+     *42        checksum
+</pre>
+
+<p>An input sentence that will define which NMEA sentences are to be output
+from the Rockwell unit is:
+
+</p><pre>  $PRWIILOG,GGA,A,T,1,0
+
+where:
+   $PRWIILOG
+   GGA        type of sentence
+   A          A=activate, V=deactivate
+   T          cyclic
+   1          every 1 second
+   0          ??
+</pre>
+
+<p>The initialization sentence which can be input to speed up acquisition 
+looks like:
+
+</p><pre>$PRWIINIT,V,,,4308.750,N,07159.791,W,100.0,0.0,M,0.0,T,175244,230503*77
+
+where:
+   $PRWIINIT     INIT = initialization
+   V             V = reset, A = no reset
+   ,,		 Reserved for future use
+   4308.750      Latitude
+   N             N = North, S = South  
+   07159.791     Longitude
+   W             W = West, E = East
+   100.0         Altitude in meters
+   0.0           Speed
+   M             M = m/s, N = knots, K = km/hr
+   0.0           Heading
+   T             T = True, M = Magnetic
+   175244	 UTC time (hour, min, sec)
+   230503        UTC date (day, month, year)
+   *77           Checksum
+</pre>
+
+<p>Note: Commas may be used to signify using existing data. If units
+are supplied then the data must be present. Speed and direction must
+be supplied together. Lat/Lon must be supplied together. UTC time and
+date must be supplied together. If heading is magnetic then lat/lon
+needs to be supplied along with UTC time and date.
+ 
+</p><p>The sentences available for the Rockwell Jupiter chipset are: GGA, GSA,
+GSV, VTG, RMC and some proprietary sentences.
+
+<a name="sirf"></a>
+</p><h4>SiRF</h4>
+
+<p>The SiRF line of chips support several input sentences that permit the
+user to customize the way the chip behaves.  In addition SiRF has a binary
+protocol that is even more powerful permitting different implementations
+to behave entirely differently.  However, most applications do not attempt
+to customize the behavior so a user will need to make sure that the
+any customization is compatible with the application they are planning to
+use.  There are 5 input sentences defined that begin with $PSRF which is
+followed by three digits.  Each sentence takes a fix amount of input fields
+which must exist, no null fields, and is terminated with the standard
+CR/LF sequence.  The checksum is required.
+
+</p><p>The sentences 100 and 102 set the serial ports. 100 sets the main
+port A while 102 sets the DGPS input port B.  100 has an extra field
+that can be used to switch the interface to binary mode. Binary mode
+requires 8 bits, 1 stop bit, no parity. There is a command in binary
+mode that will switch the interface back to NMEA. Do not use the NMEA
+command to switch to binary mode unless you have the ability to switch
+it back. You could render your gps inoperative.
+
+</p><pre> $PSRF100,0,9600,8,1,0*0C
+ $PSRF102,9600,8,1,0*3C
+
+where
+   $PSRF100
+   0          0=SiRF, 1=NMEA  - This is where the protocol is changed.
+   9600       b/s rate 4800, 9600, 19200, 38400
+   8          7, 8 Databits
+   1          0, 1 Stopbits
+   0          0=none, 1=odd, 2=even Parity
+   *0C        checksum
+</pre>
+
+<p>The sentences 101 and 104 can be used to initialize values to be used by
+the gps.  Supplying these values can shorten the initial lock time.  If
+the clock offset is set to 0 then an internal default will be used.  
+Sentence 101 supplies data in the internal ECEF (Earth centered, Earth
+Fixed) format in meters while sentence 104 supplies the data in the
+traditional Lat / Lon format.
+
+</p><pre> $PSRF101,-2686700,-4304200,3851624,95000,497260,921,12,3*22
+ $PSRF104,37.3875111,-121.97232,0,95000,237759,922,12,3*3A
+
+where
+   $PSRF104
+   37.3875111 Latitude in degrees
+   -121.97232 Longitude in degrees
+   0          Ellipsoid Altitude in meters
+   95000      Clock offset
+   237759     GPS Time of Week in seconds
+   922        GPS Week Number
+   12         Channel count (1 to 12)
+   3          Reset config where
+              1 = warm start, ephemeris valid
+              2 = clear ephemeris, warm start (First Fix)
+              3 = initialize with data, clear ephemeris
+              4 = cold start, clear all data
+              8 = cold start, set factory defaults
+   *3A        checksum
+</pre>
+
+<p>The sentence 103 is used to control which NMEA sentences are to be sent
+and how often.  Each sentence type is controlled individually.  If the
+query bit is set then the gps responds by sending this message in the next
+second no matter what the rate is set to. Note that if trickle power is
+in use (can only be set in binary mode) then the actual update rate will
+be the selected update rate times the trickle rate which could mean that
+the data will be sent less frequently than was set here.
+
+</p><pre> $PSRF103,05,00,01,01*20
+
+where
+   $PSRF103
+   05         00=GGA
+              01=GLL
+              02=GSA
+              03=GSV
+              04=RMC
+              05=VTG
+   00         mode, 0=set rate, 1=query
+   01         rate in seconds, 0-255
+   01         checksum 0=no, 1=yes
+   *20        checksum
+</pre>
+
+<p>The 105 sentence controls a debug mode which causes the gps to report
+any errors it finds with the input data.  $PSRF105,1*3E would turn debug
+on while $PSRF105,0*3F would turn it off.
+
+</p><h4>Magnavox</h4>
+
+<p>The old Magnavox system used mostly proprietary sentences. The
+Magnavox system was acquired by Leica Geosystems in 1994. Information
+on this system can be found at <a href="http://www.eecis.udel.edu/~ntp/ntp_spool/html/drivers/driver9.html">this
+site</a>. The NMEA sentences themselves are described <a href="http://www.eecis.udel.edu/~ntp/ntp_spool/html/mx4200data.html">here</a>.
+They all use the MVX prefix and include:
+
+</p><p>Control Port Input sentences
+</p><ul>
+<li> $PMVXG,000 Initialization/Mode Control - Part A
+</li><li> $PMVXG,001 Initialization/Mode Control - Part B
+</li><li> $PMVXG,007 Control Port Configuration
+</li><li> $PMVXG,023 Time Recovery Configuration
+</li><li> $CDGPQ,YYY Query From a Remote Device / Request to Output a Sentence
+</li></ul>
+<p>Control Port Output Sentences
+</p><ul>
+<li> $PMVXG,000 Receiver Status
+</li><li> $PMVXG,021 Position, Height, Velocity
+</li><li> $PMVXG,022 DOPs
+</li><li> $PMVXG,030 Software Configuration
+</li><li> $PMVXG,101 Control Sentence Accept/Reject
+</li><li> $PMVXG,523 Time Recovery Configuration
+</li><li> $PMVXG,830 Time Recovery Results
+</li></ul>
+
+<h4>Sony</h4>
+
+<p>The Sony interface uses a proprietary sentence that looks like:
+
+</p><pre>$PSNY,0,00,05,500,06,06,06,06*14
+
+where
+   PSNY
+   0          Preamp (external antenna) status
+              0 = Normal
+              1 = Open
+              2 = shorted
+   00         Geodesic system (datum) 0-25, 0 = WGS84
+   05	      Elevation mask in degrees
+   500	      Speed Limit in Km
+   06         PDOP limit with DGPS on
+   06	      HDOP limit with DGPS on
+   06	      PDOP limit with DGPS off
+   06	      HDOP limit with DGPS off
+   *14	      Checksum
+</pre>
+
+
+<!-- *** Sample Streams *** -->
+
+<a name="stream">
+<h3>Sample Streams</h3></a>
+
+<p>These streams will be modified when a route is active with the inclusion
+of route specific data.
+
+</p><h4>Garmin</h4>
+
+<p><b>Garmin g12</b> sentences for version 4.57
+</p><pre>$GPRMC,183729,A,3907.356,N,12102.482,W,000.0,360.0,080301,015.5,E*6F
+$GPRMB,A,,,,,,,,,,,,V*71
+$GPGGA,183730,3907.356,N,12102.482,W,1,05,1.6,646.4,M,-24.1,M,,*75
+$GPGSA,A,3,02,,,07,,09,24,26,,,,,1.6,1.6,1.0*3D
+$GPGSV,2,1,08,02,43,088,38,04,42,145,00,05,11,291,00,07,60,043,35*71
+$GPGSV,2,2,08,08,02,145,00,09,46,303,47,24,16,178,32,26,18,231,43*77
+$PGRME,22.0,M,52.9,M,51.0,M*14
+$GPGLL,3907.360,N,12102.481,W,183730,A*33
+$PGRMZ,2062,f,3*2D
+$PGRMM,WGS 84*06
+$GPBOD,,T,,M,,*47
+$GPRTE,1,1,c,0*07
+$GPRMC,183731,A,3907.482,N,12102.436,W,000.0,360.0,080301,015.5,E*67
+$GPRMB,A,,,,,,,,,,,,V*71
+</pre>
+Here are some observations:
+<ul>
+<li>Notice the complete cycle shows an update interval of 2 seconds
+    which is caused by the fact that there is too much data to fit
+    in one second at 4800 b/s.
+</li><li>Upping the b/s rate to 9600 will cause an update every second.
+</li><li>Notice that the samples are in real time for each sentence because
+    the GGA sentence shows an update in the time of 1 second.
+</li><li>It would be possible to provide update data every second by
+    parsing more sentences since the data is adjusted every second.
+</li><li>Notice the gaps in the GSA message where the satellites in use
+    are shown in a there slots as compared to the GSV locations.
+    Some tools do not decode this configuration correctly.
+</li><li>Note the GGA sentence starts the sequence every two seconds.
+</li><li>This sample is similar for other Garmin receivers designed in
+    the same time frame as the G-12.
+</li></ul>
+
+<b>Garmin etrex summit</b> outputs
+<pre>$GPRMC,002454,A,3553.5295,N,13938.6570,E,0.0,43.1,180700,7.1,W,A*3F
+$GPRMB,A,,,,,,,,,,,,A,A*0B
+$GPGGA,002454,3553.5295,N,13938.6570,E,1,05,2.2,18.3,M,39.0,M,,*7F
+$GPGSA,A,3,01,04,07,16,20,,,,,,,,3.6,2.2,2.7*35
+$GPGSV,3,1,09,01,38,103,37,02,23,215,00,04,38,297,37,05,00,328,00*70
+$GPGSV,3,2,09,07,77,299,47,11,07,087,00,16,74,041,47,20,38,044,43*73
+$GPGSV,3,3,09,24,12,282,00*4D
+$GPGLL,3553.5295,N,13938.6570,E,002454,A,A*4F
+$GPBOD,,T,,M,,*47
+$PGRME,8.6,M,9.6,M,12.9,M*15
+$PGRMZ,51,f*30
+$HCHDG,101.1,,,7.1,W*3C
+$GPRTE,1,1,c,*37
+$GPRMC,002456,A,3553.5295,N,13938.6570,E,0.0,43.1,180700,7.1,W,A*3D
+</pre>
+Some observations as compared to the G-12:
+<ul>
+<li>Information is buffered.  It is all for the same second.
+</li><li>Information is only updated every two seconds at 4800 b/s.
+</li><li>Lat/Lon numbers have an extra digit.
+</li><li>This is NMEA 2.3 data as indicated by the extra A at the end of RMC,
+    RMB and GLL.
+</li><li>Note that the satellites in use have been shoved to the left of
+    the GSA message instead of the slot location.
+</li><li>The RMC sentence starts the sequence.
+</li><li>Note the HCHDG sentence for the built in compass.
+</li><li>Except for the compass output this sentence list is similar for
+    most Garmin units designed around the time of the Summit receivers, 
+    beginning with the emap.
+</li></ul>
+
+<b>Garmin etrex Vista release 2.42</b> outputs
+<pre>$GPRMC,023042,A,3907.3837,N,12102.4684,W,0.0,156.1,131102,15.3,E,A*36
+$GPRMB,A,,,,,,,,,,,,A,A*0B
+$GPGGA,023042,3907.3837,N,12102.4684,W,1,04,2.3,507.3,M,-24.1,M,,*75
+$GPGSA,A,3,04,05,,,09,,,24,,,,,2.8,2.3,1.0*36
+$GPGSV,3,2,11,09,47,229,42,10,04,157,00,14,00,305,00,24,70,154,33*79
+$GPGLL,3907.3837,N,12102.4684,W,023042,A,A*5E
+$GPBOD,,T,,M,,*47
+$GPVTG,156.1,T,140.9,M,0.0,N,0.0,K*41
+$PGRME,8.4,M,23.8,M,25.7,M*2B
+$PGRMZ,1735,f*34
+$PGRMM,WGS 84*06
+$HCHDG,,,,15.3,E*30
+$GPRTE,1,1,c,*37
+$GPRMC,023044,A,3907.3840,N,12102.4692,W,0.0,156.1,131102,15.3,E,A*37
+</pre>
+Some observations as compared to the Summit:
+<ul>
+<li>Output still repeats at a rate of once every 2 seconds and is NMEA 2.3 Data
+</li><li>The satellite status sentences are interleaved. The GSV sentences are
+    only sent one in each two second group.  Note the example shows sentence
+    two of three. Thus the complete cycle would take 6 seconds.
+</li><li>New sentence VTG.
+</li><li>The altitude in PGRMZ is from the altimeter while the altitude in
+    the GGA is from the gps computation.
+</li><li>Note the HCHDG sentence for the built in compass and is missing
+    for the Legend.
+</li></ul>
+
+<b>Garmin basic yellow etrex European version</b>
+<pre>$GPRMC,152926,V,6027.8259,N,02225.6713,E,10.8,0.0,190803,5.9,E,S*22
+$GPRMB,V,,,,,,,,,,,,A,S*0E
+$GPGGA,152926,6027.8259,N,02225.6713,E,8,09,2.0,44.7,M,20.6,M,,*79
+$GPGSA,A,3,07,08,09,11,18,23,26,28,29,,,,6.6,2.0,3.0*38
+$GPGSV,3,1,09,07,29,138,44,08,22,099,42,09,30,273,44,11,07,057,35*75
+$GPGSV,3,2,09,18,28,305,43,23,14,340,39,26,64,222,49,28,60,084,49*7E
+$GPGSV,3,3,09,29,52,187,48*4E
+$GPGLL,6027.8259,N,02225.6713,E,152926,V,S*48
+$GPBOD,,T,,M,,*47
+$PGRME,15.0,M,22.5,M,15.0,M*1B
+$PGRMZ,147,f,3*19
+$GPRTE,1,1,c,*37
+$GPRMC,152928,V,6027.8319,N,02225.6713,E,10.8,0.0,190803,5.9,E,S*29 
+</pre>
+Some Ovservations:
+<ul>
+<li>The sentence sequence starts with RMC and repeats every 2 seconds.
+</li><li>The PGRMM sentence is missing so the datum is not identified.
+</li></ul>
+
+<h4>Magellan</h4>
+
+<b>Magellan GPS companion</b> sentences
+<pre>$GPGGA,184050.84,3907.3839,N,12102.4772,W,1,05,1.8,00543,M,,,,*33
+$GPRMC,184050.84,A,3907.3839,N,12102.4772,W,00.0,000.0,080301,15,E*54
+$GPGSA,A,3,24,07,09,26,05,,,,,,,,03.6,01.8,03.1*05
+$PMGNST,02.12,3,T,534,05.0,+03327,00*40
+$GPGLL,3907.3839,N,12102.4771,W,184051.812,A*2D
+$GPGGA,184051.81,3907.3839,N,12102.4771,W,1,05,1.8,00543,M,,,,*34
+$GPRMC,184051.81,A,3907.3839,N,12102.4771,W,00.0,000.0,080301,15,E*53
+$GPGSA,A,3,24,07,09,26,05,,,,,,,,03.6,01.8,03.1*05
+$GPGSV,3,1,08,07,57,045,43,09,48,303,48,04,44,144,,02,39,092,*7F
+$GPGSV,3,2,08,24,18,178,44,26,17,230,41,05,13,292,43,08,01,147,*75
+$GPGSV,3,3,08,,,,,,,,,,,,,,,,*71
+$GPGLL,3907.3840,N,12102.4770,W,184052.812,A*21
+</pre>
+Some observations:
+<ul>
+<li>Complete cycle takes two seconds.
+</li><li>RMC, GGA, GSA, and GLL are update every second.
+</li><li>GSV data is swapped with MGNST data every other second.
+</li><li>Time is shown to .xx and for GLL .xxx precision but the unit output is not 
+    that accurate. Data seems asynchronous and not tied to top of any 
+    particular second.
+</li><li>Lat/Lon has an extra digit as compared to the Garmin G-12.
+</li><li>There is a third GSV sentence that is technically not required.
+</li><li>Notice that all the satellites used are shoved to the left in the
+    GSA message.
+</li><li>No geoid corrections are shown in the GGA message. This indicates
+    that altitude is shown with respect to the ellipsoid instead of MSL.
+</li></ul>
+
+<b>Magellan 315</b> shown in simulation mode.
+<pre>$GPAPB,A,A,0.0,L,N,,,1.1,M,SIM002,1.1,M,,,*21
+$GPGSA,A,3,01,02,03,04,,,,,,,,,2.0,2.0,2.0*34
+$GPGSV,3,1,11,01,77,103,,13,53,215,,04,47,300,,20,47,090,*76
+$GPGSV,3,2,11,19,24,158,,07,21,237,,25,16,039,,24,11,315,*73
+$GPGSV,3,3,11,11,08,149,,27,00,179,,30,00,354,,,,,*46
+$GPGLL,5100.2111,N,00500.0006,E,104715.203,A*37
+$GPGGA,104715.20,5100.2111,N,00500.0006,E,1,04,2.0,-0047,M,,,,*39
+$GPRMB,A,0.00,L,SIM001,SIM002,5102.6069,N,00500.0000,E,002.4,000.,021.7,V*0D
+$GPRMC,104715.20,A,5100.2111,N,00500.0006,E,21.7,003.0,140801,01.,W*70
+$GPAPB,A,A,0.0,L,N,,,1.1,M,SIM002,1.1,M,,,*21
+$GPGSA,A,3,01,02,03,04,,,,,,,,,2.0,2.0,2.0*34
+</pre>
+Some observations:
+<ul>
+<li>This listing shows navigation sentences simulating a route between
+    two locations, SIM001 and SIM002.
+</li><li>GLL starts the sequence and time stamp in the GLL message shows 
+    more precision.
+</li><li>Update is every 2 seconds.
+</li><li>NMEA data is only transmitted in simulation mode or you have an
+    actual fix.
+</li></ul>
+
+<h4>Others</h4>
+
+<b>Raytheon  RN300</b> sentences:
+<pre>$GPGGA,171537,3350.975,N,11823.991,W,2,07,1.1,-25.8,M,,M,1.8,,D*17
+$GPGLL,3350.975,N,11823.991,W,171537,A,D*50
+$GPRMC,171537,A,3350.975,N,11823.991,W,0.0,096.5,060401,013.0,E,D*07
+$GPVTG,096.5,T,083.5,M,0.0,N,0.0,K,D*22
+$GPGSA,A,2,04,09,07,24,02,05,26,,,,,,,1.1,*3C
+$GPGSV,2,1,07,04,62,120,47,09,52,292,53,07,42,044,41,24,38,179,45*7B
+$GPGSV,2,2,07,02,34,101,43,05,18,304,40,26,09,223,36,,,,*48
+$PRAYA,6,1,122,0,0,2,36,1,1,,,,,*5A
+$GPDTM,W84,,0.000000,N,0.000000,E,0.0,W84*6F
+$GPGGA,171538,3350.974,N,11823.991,W,2,07,1.1,-25.8,M,,M,1.8,,D*19
+</pre>
+Some observations:
+<ul>
+<li>Complete cycle every second triggered off of GGA.
+</li><li>Date is NMEA 2.3 with integrity value added.
+</li><li>The proprietary raytheon sentences seems to be for WAAS SV #122.
+</li><li>Note the new DTM sentences that permits conversion of NMEA datum 
+    being used to WGS84.
+</li><li>The satellites are listed in an arbitrary order, stacked to the left.
+</li></ul>
+
+<b>NavMan 3400</b> (SiRF chipset sentences)
+
+<pre>$GPGGA,230611.016,3907.3813,N,12102.4635,W,0,04,5.7,507.9,M,,,,0000*11
+$GPGLL,3907.3813,N,12102.4635,W,230611.016,V*31
+$GPGSA,A,1,27,08,28,13,,,,,,,,,21.7,5.7,20.9*38
+$GPGSV,3,1,10,27,68,048,42,08,63,326,43,28,48,239,40,13,39,154,39*7E
+$GPGSV,3,2,10,31,38,069,34,10,23,282,,03,12,041,,29,09,319,*7C
+$GPGSV,3,3,10,23,07,325,,01,05,145,*7E
+$GPRMC,230611.016,V,3907.3813,N,12102.4635,W,0.14,136.40,041002,,*04
+$GPVTG,136.40,T,,M,0.14,N,0.3,K*66
+$GPGGA,230612.015,3907.3815,N,12102.4634,W,0,04,5.7,508.3,M,,,,0000*13       
+</pre>
+Some observations:
+<ul>
+<li>A cycle is every second triggered off of GGA.
+</li><li>The GSA, GSV sentences are only sent every 4 seconds or so. The actual
+    sentences sent and the rate is adjustable using proprietary NMEA commands.
+</li><li>Altitude is based on the ellipsoid model and is not corrected 
+    for geoid. Note that no geoid corrections are shown in GGA.
+</li><li>All headings are stated as true direction. There are no magnetic
+    direction outputs.
+</li><li>The ,0000 at the end of GGA is non standard.
+</li><li>Lat/Lon has an extra digit as compared to the Garmin G-12.
+</li><li>The clock is shown with millisecond precision.
+</li><li>The Navman sends 10 lines of non-nmea ascii data when it is first 
+    turned on. Each line does begin with a $.
+</li><li>This is a sample sentence sequence. The Navman can be programmed to
+    send less sentences or sentences at a different rate.
+</li><li>The Navman uses the SiRF chipset, see above for more data on this chipset.
+</li><li>Sentences are stated to be NMEA 2.2 based on documentation.
+</li></ul>
+
+<b>Earhmate with SiRF chipset (firmware 2.31)</b>
+
+<pre>$GPGGA,120557.916,5058.7456,N,00647.0515,E,2,06,1.7,108.5,M,47.6,M,1.5,0000*7A
+$GPGSA,A,3,20,11,25,01,14,31,,,,,,,2.6,1.7,1.9*3B
+$GPGSV,2,1,08,11,74,137,45,20,58,248,43,07,27,309,00,14,23,044,36*7A
+$GPGSV,2,2,08,01,14,187,41,25,13,099,39,31,11,172,37,28,09,265,*71
+$GPRMC,120557.916,A,5058.7456,N,00647.0515,E,0.00,82.33,220503,,*39
+$GPGGA,120558.916,5058.7457,N,00647.0514,E,2,06,1.7,109.0,M,47.6,M,1.5,0000*71
+</pre>
+
+Some observations in comparison with the NavMan.
+<ul>
+<li>This unit show WAAS/EGNOS (WADGPS) in use. The GGA sentence shows a 
+    2 indicating differential gps corrections.  The 1.5 at the end shows 
+    the age of the dgps correction signal.
+</li><li>This is a new chipset firmware release and does support Geoid height
+    in the altitude as shown in the GGA sentence.
+</li><li>The RMC sentences shows that there is no support for Magnetic headings.
+</li><li>When WAAS/EGNOS was not in use a GLL sentence showed up after the GGA.
+</li></ul>
+
+<a name="evermore">
+<b>Evermore GM-305</b></a>
+
+<pre>$GPGGA,001430.003,3907.3885,N,12102.4767,W,1,05,02.1,00545.6,M,-26.0,M,,*5F
+$GPGSA,A,3,15,18,14,,,31,,,23,,,,04.5,02.1,04.0*0F
+$GPGSV,3,1,10,15,48,123,35,18,36,064,36,14,77,186,39,03,36,239,29*7A
+$GPGSV,3,2,10,09,08,059,,31,35,276,35,17,10,125,,11,08,306,*79
+$GPGSV,3,3,10,23,41,059,37,25,06,173,*70
+$GPRMC,001430.003,A,3907.3885,N,12102.4767,W,000.0,175.3,220403,015.4,E*71
+$GPGGA,001431.003,3907.3885,N,12102.4767,W,1,05,02.1,00545.5,M,-26.0,M,,*5D
+</pre>
+
+Some observations
+<ul>
+<li>This chipset is used in the Deluo universal mouse gps.
+</li><li>Update is every second by default.
+</li><li>Actual sentences are programmable using proprietary interface. 
+    GLL and VTG can be added and others removed. The update interval 
+    can be modified.
+</li><li>Altitude is given relative to MSL (Geoid height) in GGA
+</li><li>Magnetic and True headings are supported.
+</li></ul>
+
+<a name="sony">
+<b>Sony</b></a>
+
+<pre>$GPVTG,139.7,T,,M,010.3,N,019.1,K*67
+$GPGGA,050306,4259.8839,N,07130.3922,W,0,00,99.9,0010,M,,M,000,0000*66
+$GPGLL,4259.8839,N,07130.3922,W,050306,V*20
+$GPRMC,050306,V,4259.8839,N,07130.3922,W,010.3,139.7,291003,,*10
+$GPZDA,050306,29,10,2003,,*43
+$GPGSA,A,1,,,,,,,,,,,,,99.9,99.9,99.9*09
+$PSNY,0,00,05,500,06,06,06,06*14
+</pre>
+
+Some observations
+<ul>
+<li>This is the format of Digittraveler from RadioShack.
+</li><li>If batteries are removed for 5 minutes on the Digitraveler the data is 
+    wrong.
+</li><li>The Sony proprietary message is described above.
+</li><li>Altitude is Ellipsoid, not MSL.
+</li><li>Heading is True only, Magnetic variation is not provided.
+</li><li>VTG, GGA, GLL, RMC, ZDA output every second. GSA and PSNY are
+alternated with GSV data.
+</li></ul>
+
+<a name="ublox" <b="">UBlox</a>
+
+<pre>$GPRMC,162254.00,A,3723.02837,N,12159.39853,W,0.820,188.36,110706,,,A*74
+$GPVTG,188.36,T,,M,0.820,N,1.519,K,A*3F
+$GPGGA,162254.00,3723.02837,N,12159.39853,W,1,03,2.36,525.6,M,-25.6,M,,*65
+$GPGSA,A,2,25,01,22,,,,,,,,,,2.56,2.36,1.00*02
+$GPGSV,4,1,14,25,15,175,30,14,80,041,,19,38,259,14,01,52,223,18*76
+$GPGSV,4,2,14,18,16,079,,11,19,312,,14,80,041,,21,04,135,25*7D
+$GPGSV,4,3,14,15,27,134,18,03,25,222,,22,51,057,16,09,07,036,*79
+$GPGSV,4,4,14,07,01,181,,15,25,135,*76
+$GPGLL,3723.02837,N,12159.39853,W,162254.00,A,A*7C
+$GPZDA,162254.00,11,07,2006,00,00*63
+</pre>
+
+Some observations
+<ul>
+<li>This is a 16 channel unit and shows up to 4 GSV sentences.
+</li><li>The sentences were captured at 9600 b/s, some are missing at 4800.
+</li><li>WAAS satellites can be used for ranging even if WAAS is turned off.
+</li></ul>
+
+<h5>Credits</h5>
+
+<p><a href="http://vancouver-webpages.com/peter/">Peter's</a> and <a href="http://gpsinformation.net/">Joe's</a> web sites were used as
+primary sources for data in this article as well as personal research.
+Some data was obtained from the <a href="http://www.garmin.com/">Garmin</a> product manuals and product
+manuals from other manufacturers.  The sample data streams were
+collected as captured from the appropriate devices directly or supplied
+to me by someone who captured them. All rights to this presentation
+are reserved.
+
+</p><p>While I didn't use this page as a source there is some good data
+on <a href="http://home.mira.net/~gnb/gps/nmea.html">Glenn Baddeley</a>'s
+site. It includes some sentences that are not on this page.
+
+</p><p><a href="mailto:dale@gpsinformation.net">Dale DePriest</a>
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script><script src="http://www.google-analytics.com/ga.js" type="text/javascript"></script>
+<script type="text/javascript">
+var pageTracker = _gat._getTracker("UA-4045193-1");
+pageTracker._initData();
+pageTracker._trackPageview();
+</script>
+
+
+
+
+</p></body></html>
