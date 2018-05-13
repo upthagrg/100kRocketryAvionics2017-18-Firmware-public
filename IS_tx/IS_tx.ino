@@ -110,18 +110,37 @@ void loop() {
   //call error checker bf updating leds
   check_errors(); //errors
   update_LEDS();  //lights
+  check_launch(); //senditt
+}
+
+void check_launch(){
+  if(comm_en == 1 && turn_key == 1){ //comm_en and key turned
+    check_errors();                  //checks errors again for good measure
+    if(digitalRead(switch3) == 0){   //when red button pressed
+      launch();                      //calls launch function
+    }
+  }
 }
 
 void check_errors(){
-  //If Dallas tries to turn the key but he didn’t already arm the button switch
-  //throw the status light and lockout until the key is turned back to the safe state
+  
   do{
+    //If Dallas tries to turn the key but he didn’t already arm the button switch
+    //throw the status light and lockout until the key is turned back to the safe state
     if(turn_key == 1 && arm == 0){
       //digitalWrite(relay7, LOW); //buzzer sounds
       status_light = 1;          //sets status light state high
       digitalWrite(relay4, LOW); //turns on status light
       stay = 1;                  //locks out user, forces reset to continue
     }
+    //If someone tries to arm without comm enabled, throw an error
+    if(comm_en == 0 && arm == 1){
+      //digitalWrite(relay7, LOW); //buzzer sounds
+      status_light = 1;          //sets status light state high
+      digitalWrite(relay4, LOW); //turns on status light
+      stay = 1;                  //locks out user, forces reset to continue
+    }
+    
   }while(stay == 1);
 }
 
@@ -132,6 +151,12 @@ void update_LEDS(){
   else digitalWrite(relay6, HIGH);
   if(status_light == 1) digitalWrite(relay4, LOW); //turns on status light
   else digitalWrite(relay4, HIGH);
+}
+
+void launch(){
+  digitalWrite(relay7, LOW); //turns buzzer on
+  delay(250);
+  digitalWrite(relay7, HIGH); //turns buzzer off
 }
 
 void full_reset(){
@@ -156,4 +181,4 @@ void full_reset(){
   digitalWrite(relay8, HIGH); 
 }
 
-//if((digitalRead(switch2) == 1) && digitalRead(switch3) == 0) //SENDIT
+
