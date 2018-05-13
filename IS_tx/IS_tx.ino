@@ -56,19 +56,19 @@ void setup() {
   do{
     
     if(digitalRead(switch1) != 0){
-      //digitalWrite(relay7, LOW); //buzzer sounds if comm en on upon startup
+      digitalWrite(relay7, LOW); //buzzer sounds if comm en on upon startup
       status_light = 1;          //sets status light state high
       digitalWrite(relay4, LOW); //turns on status light 
       stay = 1;                  //keeps this loop running
     }
     else if(digitalRead(switch2) != 0){
-      //digitalWrite(relay7, LOW); //buzzer sounds if turn key on upon start up
+      digitalWrite(relay7, LOW); //buzzer sounds if turn key on upon start up
       status_light = 1;          //sets status light state high
       digitalWrite(relay4, LOW); //turns on status light 
       stay = 1;
     }
     else if(digitalRead(switch4) != 0){
-      //digitalWrite(relay7, LOW); //buzzer sounds if arm on upon start up
+      digitalWrite(relay7, LOW); //buzzer sounds if arm on upon start up
       status_light = 1;          //sets status light state high
       digitalWrite(relay4, LOW); //turns on status light 
       stay = 1;
@@ -141,14 +141,14 @@ void check_errors(){
     //If Dallas tries to turn the key but he didn’t already arm the button switch
     //throw the status light and lockout until the key is turned back to the safe state
     if(turn_key == 1 && arm == 0){
-      //digitalWrite(relay7, LOW); //buzzer sounds
+      digitalWrite(relay7, LOW); //buzzer sounds
       status_light = 1;          //sets status light state high
       digitalWrite(relay4, LOW); //turns on status light
       stay = 1;                  //locks out user, forces reset to continue
     }
     //If someone tries to arm without comm enabled, throw an error
     if(comm_en == 0 && arm == 1){
-      //digitalWrite(relay7, LOW); //buzzer sounds
+      digitalWrite(relay7, LOW); //buzzer sounds
       status_light = 1;          //sets status light state high
       digitalWrite(relay4, LOW); //turns on status light
       stay = 1;                  //locks out user, forces reset to continue
