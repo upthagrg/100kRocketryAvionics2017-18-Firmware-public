@@ -14,30 +14,42 @@
 
 const byte HC12RxdPin = 4;                  // Recieve Pin on HC12
 const byte HC12TxdPin = 5;                  // Transmit Pin on HC12
+const int  switch1 = 2;                     // Switch1 pin
+const int  switch2 = 3;                     // Switch2 pin
+bool       sw1 = 0;                         // Switch1 state
+bool       sw2 = 0;                         // Switch2 state
 
 SoftwareSerial HC12(HC12TxdPin,HC12RxdPin); // Create Software Serial Port
 
 void setup() {
   Serial.begin(9600);                       // Open serial port to computer
   HC12.begin(9600);                         // Open serial port to HC12
+  pinMode(switch1, OUTPUT);
+  pinMode(switch2, OUTPUT);
   pinMode(Relay, OUTPUT);
 }
 
 void loop() {
+
+  if(digitalRead(switch1) == HIGH) sw1 = 1;
+  else sw1 = 0;  
+  if(digitalRead(switch2) == HIGH) sw2 = 1;
+  else sw1 = 0;
    
-  if(HC12.available()){    
-    int input = HC12.parseInt();  //read serial input and convert to integer (-32,768 to 32,767)    
-    if(input == 15018){              //if on code is received
-      digitalWrite(Relay, HIGH);     //Fire Rocket
-      delay(1000);                   //Shorts E-Match for 1 second
-      digitalWrite(Relay, LOW);      //Turns relay off
-      input = 0;                     //Resets input variable   
+  if(sw1 == 1 && sw2 == 1){ //checks that both switches turned
+    if(HC12.available()){    
+      int input = HC12.parseInt();  //read serial input and convert to integer (-32,768 to 32,767)    
+      if(input == 15018){              //if on code is received
+        digitalWrite(Relay, HIGH);     //Fire Rocket
+        delay(500);                   //Shorts E-Match for 1 second
+        digitalWrite(Relay, LOW);      //Turns relay off
+        input = 0;                     //Resets input variable   
+      }
     }
-  }
-  HC12.flush();                   //clear the serial buffer for unwanted inputs     
+    HC12.flush();                   //clear the serial buffer for unwanted inputs     
   
-  delay(20);                          //small delay to improve serial communication
- 
+    delay(20);                          //small delay to improve serial communication
+  }
 }
 
 /* //code from block check offs
