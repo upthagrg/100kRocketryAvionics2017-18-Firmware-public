@@ -27,7 +27,7 @@ void loop() {
    
   if(HC12.available()){    
     int input = HC12.parseInt();  //read serial input and convert to integer (-32,768 to 32,767)    
-    if(input == 2017){                //if on code is received
+    if(input == 15018){                //if on code is received
       digitalWrite(Relay, HIGH);     //Fire Rocket
       delay(1000);                    //Shorts E-Match for 1 second
       digitalWrite(Relay, LOW);      //Turns relay off

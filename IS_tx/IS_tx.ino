@@ -1,3 +1,8 @@
+#include <SoftwareSerial.h>
+
+const int launch_code = 15018; //launch code
+const byte HC12RxdPin = 4; // Recieve Pin on HC12
+const byte HC12TxdPin = 5; // Transmit Pin on HC12
 const int switch1 = 8;  //comm enable switch
 const int switch2 = 9;  //turn key
 const int switch3 = 10; //button (active-low)
@@ -19,8 +24,9 @@ bool arm_light    = 0;  //relay6
 bool power_light  = 0;  //relay5
 bool status_light = 0;  //relay4 blinks when pings, shows error
 bool rf_pwr_amp   = 0;  //relay3
-
 //all relays active low
+
+SoftwareSerial HC12(HC12TxdPin,HC12RxdPin); // Create Software Serial Port
 
 bool stay = 0; //keeps the lower setup loop running if start up conditions are not met
 
@@ -93,21 +99,28 @@ void setup() {
       digitalWrite(relay7, HIGH);
       digitalWrite(relay8, HIGH); 
     }
+
+    HC12.begin(9600);     // Open serial port to HC12 after initial conditions checked
     
-  }while(stay == 1);             //while the error persists 
+  }while(stay == 1);      //while the error persists 
 }  
 
 void loop() {
   
   //reads states of switches
-  if(digitalRead(switch1) == 1) comm_en = 1;
-  else comm_en = 0;
+  if(digitalRead(switch1) == 1){
+    comm_en = 1;
+    digitalWrite(relay3, LOW); //turns on power amp
+  }
+  else{
+    comm_en = 0;
+    digitalWrite(relay3, HIGH); //turns off power amp
+  }
   if(digitalRead(switch2) == 1) turn_key = 1;
   else turn_key = 0;
   if(digitalRead(switch4) == 1) arm = 1;
   else arm = 0;
 
-  //call error checker bf updating leds
   check_errors(); //errors
   update_LEDS();  //lights
   check_launch(); //senditt
@@ -154,9 +167,15 @@ void update_LEDS(){
 }
 
 void launch(){
-  digitalWrite(relay7, LOW); //turns buzzer on
+  digitalWrite(relay7, LOW); //turns buzzer on //DEBUG
   delay(250);
   digitalWrite(relay7, HIGH); //turns buzzer off
+
+  HC12.println(launch_code); //sends launch code
+  
+  //Serial.begin(9600);           //debug
+  //Serial.println(launch_code); 
+    
 }
 
 void full_reset(){
