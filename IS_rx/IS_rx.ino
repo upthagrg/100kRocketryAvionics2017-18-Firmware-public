@@ -19,10 +19,8 @@
 
 const byte HC12RxdPin = 4;                  // Recieve Pin on HC12
 const byte HC12TxdPin = 5;                  // Transmit Pin on HC12
-const int  switch1 = 2;                     // Switch1 pin
-const int  switch2 = 3;                     // Switch2 pin
+const int  switch1 = 3;                     // Switch1 pin
 bool       sw1 = 0;                         // Switch1 state
-bool       sw2 = 0;                         // Switch2 state
 
 SoftwareSerial HC12(HC12TxdPin,HC12RxdPin); // Create Software Serial Port
 
@@ -30,7 +28,6 @@ void setup() {
   Serial.begin(9600);                       // Open serial port to computer
   HC12.begin(9600);                         // Open serial port to HC12
   pinMode(switch1, OUTPUT);
-  pinMode(switch2, OUTPUT);
   pinMode(Relay, OUTPUT);
   pinMode(light_comm, OUTPUT);
   pinMode(light_power, OUTPUT);
@@ -38,19 +35,25 @@ void setup() {
   pinMode(Buzzer, OUTPUT);
 
   digitalWrite(light_power, HIGH);          //when powered on
+  digitalWrite(light_safe, HIGH);          //when powered on
   startup();                                //startup tone
 }
 
 void loop() {
 
   
-  
-  if(digitalRead(switch1) == HIGH) sw1 = 1;
-  else sw1 = 0;  
-  if(digitalRead(switch2) == HIGH) sw2 = 1;
-  else sw1 = 0;
+  //checks safe light
+  if(digitalRead(switch1) == HIGH){
+    digitalWrite(light_safe, LOW);
+    sw1 = 1;
+  }
+  else{
+    digitalWrite(light_safe, HIGH);
+    sw1 = 0;
+  }
+    
    
-  if(sw1 == 1 && sw2 == 1){ //checks that both switches turned
+  if(sw1 == 1){ //checks that switch turned
     if(HC12.available()){    
       int input = HC12.parseInt();  //read serial input and convert to integer (-32,768 to 32,767)    
       if(input == 15018){              //if on code is received
