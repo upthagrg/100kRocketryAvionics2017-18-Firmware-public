@@ -11,6 +11,11 @@
 
 #include <SoftwareSerial.h>
 #define Relay 12                            //Relay pin
+#define Buzzer 11
+#define light_comm 8                        //comm link (yellow)
+#define light_power 9                       //power light (red)
+#define light_safe 10                       //safe light (green)
+
 
 const byte HC12RxdPin = 4;                  // Recieve Pin on HC12
 const byte HC12TxdPin = 5;                  // Transmit Pin on HC12
@@ -27,10 +32,19 @@ void setup() {
   pinMode(switch1, OUTPUT);
   pinMode(switch2, OUTPUT);
   pinMode(Relay, OUTPUT);
+  pinMode(light_comm, OUTPUT);
+  pinMode(light_power, OUTPUT);
+  pinMode(light_safe, OUTPUT);
+  pinMode(Buzzer, OUTPUT);
+
+  digitalWrite(light_power, HIGH);          //when powered on
+  startup();                                //startup tone
 }
 
 void loop() {
 
+  
+  
   if(digitalRead(switch1) == HIGH) sw1 = 1;
   else sw1 = 0;  
   if(digitalRead(switch2) == HIGH) sw2 = 1;
@@ -50,6 +64,58 @@ void loop() {
   
     delay(20);                          //small delay to improve serial communication
   }
+}
+
+void startup(){
+
+  tone(Buzzer, 4000);
+  delay(150);
+  noTone(Buzzer);
+  delay(150);
+  tone(Buzzer, 4000);
+  delay(150);
+  noTone(Buzzer);
+  delay(150);
+  tone(Buzzer, 4000);
+  delay(150);
+  noTone(Buzzer);
+  delay(150);
+
+  tone(Buzzer, 4800);
+  delay(50);
+  noTone(Buzzer);
+  delay(50);
+  tone(Buzzer, 4800);
+  delay(50);
+  noTone(Buzzer);
+  delay(50);
+  tone(Buzzer, 4800);
+  delay(50);
+  noTone(Buzzer);
+  delay(50);
+  tone(Buzzer, 4800);
+  delay(50);
+  noTone(Buzzer);
+  delay(50);
+  tone(Buzzer, 4800);
+  delay(50);
+  noTone(Buzzer);
+  delay(150);
+
+
+
+  tone(Buzzer, 4000);
+  delay(250);
+  noTone(Buzzer);
+  delay(250);
+  tone(Buzzer, 4000);
+  delay(250);
+  noTone(Buzzer);
+  delay(250);
+  tone(Buzzer, 4000);
+  delay(250);
+  noTone(Buzzer);
+  delay(250);
 }
 
 /* //code from block check offs
