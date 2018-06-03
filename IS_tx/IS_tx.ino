@@ -207,7 +207,7 @@ void ping(){
   //comm link pings if comm_en switch is turned and arm switch is off
   if(comm_en == 1 && arm == 0){
     digitalWrite(relay4, LOW);       //flashes status light
-    HC12.println("KI7NXS");          //sends callsign every 15 seconds as well
+    //HC12.println("USER HAM RADIO CALLSIGN");          //sends callsign every 15 seconds as well
     delay(100);
     HC12.println(4444);              //sends comm link code
     delay(150);                      //makes light visable
